@@ -7,7 +7,7 @@ const ethers = require('ethers');
 describe("Example", function () {
     this.timeout(20000);
 
-    let aliceAccount = accounts[3];
+    let owner = accounts[3];
     let deployer;
     let lottaryInstance;
     let vrfCoordinator;
@@ -23,7 +23,7 @@ describe("Example", function () {
 
     before(async () => {
         // deployer = new etherlime.InfuraPrivateKeyDeployer(ropstenPRKey, "ropsten");
-        deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.privateKey);
+        deployer = new etherlime.EtherlimeGanacheDeployer(owner.privateKey);
 
         amtechToken = await deployer.deploy(AmtechToken, {}, TOKEN_NAME, TOKEN_SYMBOL);
         vrfCoordinator = await deployer.deploy(VRFCoordinator, {}, amtechToken.contractAddress);
