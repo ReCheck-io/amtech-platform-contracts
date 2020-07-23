@@ -29,6 +29,11 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
 
     Whitelisting public whitelisting;
 
+    modifier onlyWhitelisted(address recipient) {
+        require(whitelisting.isWhitelisted(recipient));
+        _;
+    }
+
     /**
      * @dev Grants `DEFAULT_ADMIN_ROLE`, `MINTER_ROLE` and `PAUSER_ROLE` to the
      * account that deploys the contract.
@@ -77,11 +82,10 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
         public
         virtual
         override
+        onlyWhitelisted(recipient)
         returns (bool)
     {
-        require(whitelisting.isWhitelisted(recipient));
-
-        _transfer(_msgSender(), recipient, amount);
+        super.transfer(recipient, amount);
         return true;
     }
 
@@ -100,18 +104,8 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
         address sender,
         address recipient,
         uint256 amount
-    ) public virtual override returns (bool) {
-        require(whitelisting.isWhitelisted(recipient));
-
-        _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            _msgSender(),
-            allowance(sender, _msgSender()).sub(
-                amount,
-                "ERC20: transfer amount exceeds allowance"
-            )
-        );
+    ) public virtual override onlyWhitelisted(recipient) returns (bool) {
+        super.transferFrom(sender, recipient, amount);
         return true;
     }
 

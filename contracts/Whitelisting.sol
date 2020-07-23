@@ -33,17 +33,13 @@ contract Whitelisting is Ownable {
     /**
      * @dev Adds/Removes whitelisted accounts.
      * @param _users The target accounts.
-     * @param _isWhitelisted Set to true to whitelist accounts.
+     * @param _isWhitelisted Set to true to whitelist address.
      */
     function setWhitelisted(address[] memory _users, bool _isWhitelisted)
         public
         onlyAuthorized
     {
         for (uint256 i = 0; i < _users.length; i++) {
-            require(
-                _users[i] != address(0),
-                "Whitelisting: user is the zero address"
-            );
             whitelisted[_users[i]] = _isWhitelisted;
         }
         emit WhitelistedStatusModified(msg.sender, _users, _isWhitelisted);
