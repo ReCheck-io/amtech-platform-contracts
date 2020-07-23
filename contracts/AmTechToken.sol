@@ -7,6 +7,7 @@ import "../node_modules/@openzeppelin/contracts/GSN/Context.sol";
 import "../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../node_modules/@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "../node_modules/@openzeppelin/contracts/token/ERC20/ERC20Pausable.sol";
+import "./Whitelisting.sol";
 
 /**
  * @dev {ERC20} token, including:
@@ -26,20 +27,30 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
+    Whitelisting public whitelisting;
+
+    modifier onlyWhitelisted(address recipient) {
+        require(whitelisting.isWhitelisted(recipient));
+        _;
+    }
+
     /**
      * @dev Grants `DEFAULT_ADMIN_ROLE`, `MINTER_ROLE` and `PAUSER_ROLE` to the
      * account that deploys the contract.
      *
      * See {ERC20-constructor}.
      */
-    constructor(string memory name, string memory symbol)
-        public
-        ERC20(name, symbol)
-    {
+    constructor(
+        string memory name,
+        string memory symbol,
+        address whitelistingContract
+    ) public ERC20(name, symbol) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         _setupRole(MINTER_ROLE, _msgSender());
         _setupRole(PAUSER_ROLE, _msgSender());
+
+        whitelisting = Whitelisting(whitelistingContract);
     }
 
     /**
@@ -57,6 +68,45 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
             "ERC20PresetMinterPauser: must have minter role to mint"
         );
         _mint(to, amount);
+    }
+
+    /**
+     * Overrides default ERC20 transfer
+     *
+     * Requirements:
+     *
+     * - `recipient` cannot be the zero address.
+     * - the caller must have a balance of at least `amount`.
+     */
+    function transfer(address recipient, uint256 amount)
+        public
+        virtual
+        override
+        onlyWhitelisted(recipient)
+        returns (bool)
+    {
+        super.transfer(recipient, amount);
+        return true;
+    }
+
+    /**
+     * Overrides default ERC20 transferFrom
+     *
+     * Emits an {Approval} event indicating the updated allowance.
+     *
+     * Requirements:
+     * - `sender` and `recipient` cannot be the zero address.
+     * - `sender` must have a balance of at least `amount`.
+     * - the caller must have allowance for ``sender``'s tokens of at least
+     * `amount`.
+     */
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public virtual override onlyWhitelisted(recipient) returns (bool) {
+        super.transferFrom(sender, recipient, amount);
+        return true;
     }
 
     /**
