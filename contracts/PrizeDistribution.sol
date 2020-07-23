@@ -18,7 +18,7 @@ contract PrizeDistribution is Ownable {
     // address[] public currentRoundWinnersAddress;
 
     uint256 public currentRound;
-    mapping(uint256 => uint256) public roundsAndWinningPositions;
+    mapping(uint256 => uint256[]) public roundsAndWinningPositions;
 
     struct UserStatus {
         uint256 index;
