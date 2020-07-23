@@ -34,6 +34,7 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
         _;
     }
 
+    // TODO: do we have to hard stop minting after period
     /**
      * @dev Grants `DEFAULT_ADMIN_ROLE`, `MINTER_ROLE` and `PAUSER_ROLE` to the
      * account that deploys the contract.
