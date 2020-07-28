@@ -14,27 +14,21 @@ contract PrizeDistribution is Ownable {
     uint256[] public tokenHolderWeights;
     mapping(address => UserStatus) indexToHolderAddress;
 
-    // uint256[] public currentRoundWinners;
-    // address[] public currentRoundWinnersAddress;
-
     uint256 public currentRound;
     mapping(uint256 => uint256[]) public roundsAndWinningPositions;
+
+    address[] public currentRoundWinnersAddress;
 
     struct UserStatus {
         uint256 index;
         bool isActiv;
     }
 
-    // struct Winners {
-    //     address winner;
-    //     uint256 prize;
-    //     uint256 timestamp;
-    // }
-
     constructor(address _randomGenerator) public {
         randomGenerator = IRandomGenerator(_randomGenerator);
     }
 
+    // TODO: should set max number of winners per draw
     function drawWinners(uint256 n, uint256 userSeed) public returns (bool) {
         uint256 winningPosition;
         uint256 random = randomGenerator.rollTheDice(userSeed);
@@ -44,8 +38,8 @@ contract PrizeDistribution is Ownable {
             );
             roundsAndWinningPositions[currentRound].push(winningPosition);
 
-            // address winner = findWinner(winningPosition);
-            // currentRoundWinnersAddress.push(winner);
+            address winner = findWinner(winningPosition);
+            currentRoundWinnersAddress.push(winner);
         }
     }
 
@@ -61,6 +55,8 @@ contract PrizeDistribution is Ownable {
         }
     }
 
+    // TODO: Token contract should set this
+    // TODO: some validations maybe
     function setUserWheight(address tokenHolder, uint256 weight) public {
         if (!indexToHolderAddress[tokenHolder].isActiv) {
             tokenHolders.push(tokenHolder);
