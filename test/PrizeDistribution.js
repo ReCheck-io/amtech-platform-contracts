@@ -12,10 +12,13 @@ describe("Example", function () {
 
     const USERS = 8;
 
+    const tokenContract = accounts[0].signer.address;
+
     beforeEach(async () => {
         deployer = new etherlime.EtherlimeGanacheDeployer();
         mockRandomGenerator = await deployer.deploy(MockRandomGenerator);
         prizeDistribution = await deployer.deploy(PrizeDistribution, {}, mockRandomGenerator.contractAddress);
+        await prizeDistribution.setTokenAddress(tokenContract);
 
 
         for (let i = 0; i < USERS; i++) {

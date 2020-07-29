@@ -17,6 +17,7 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
     using SafeMath for uint256;
 
     IRandomGenerator public randomGenerator;
+    address public tokenAddress;
 
     uint256 public totalSupply;
     address[] public tokenHolders;
@@ -34,6 +35,11 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
     struct Winner {
         address winner;
         uint256 position;
+    }
+
+    modifier onlyTokenContract() {
+        require(msg.sender == tokenAddress);
+        _;
     }
 
     /**
@@ -88,8 +94,7 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         }
     }
 
-    // TODO: Token contract should set this
-    // TODO: some validations maybe
+    // TODO: token contract should be able to decrease user weight!
     /**
      * @dev Set token holder addresses and their balances as weights.
      * Requirements:
@@ -99,6 +104,7 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
     function setUserWheight(address tokenHolder, uint256 weight)
         public
         override
+        onlyTokenContract
         returns (bool)
     {
         if (!indexToHolderAddress[tokenHolder].isActiv) {
@@ -148,5 +154,11 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
 
     function getUserCount() public view returns (uint256) {
         return tokenHolders.length;
+    }
+
+    function setTokenAddress(address _tokenAddress) public onlyOwner {
+        require(tokenAddress == address(0));
+        require(_tokenAddress != address(0));
+        tokenAddress = _tokenAddress;
     }
 }

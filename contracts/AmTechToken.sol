@@ -8,6 +8,7 @@ import "../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../node_modules/@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "../node_modules/@openzeppelin/contracts/token/ERC20/ERC20Pausable.sol";
 import "./Whitelisting.sol";
+import "./interfaces/IPrizeDistribution.sol";
 
 /**
  * @dev {ERC20} token, including:
@@ -28,6 +29,7 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     Whitelisting public whitelisting;
+    IPrizeDistribution public prizeDistribution;
 
     modifier onlyWhitelisted(address recipient) {
         require(whitelisting.isWhitelisted(recipient));
@@ -44,14 +46,16 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
     constructor(
         string memory name,
         string memory symbol,
-        address whitelistingContract
+        address whitelistingContractAddress,
+        address prizeDistributionAddress
     ) public ERC20(name, symbol) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         _setupRole(MINTER_ROLE, _msgSender());
         _setupRole(PAUSER_ROLE, _msgSender());
 
-        whitelisting = Whitelisting(whitelistingContract);
+        whitelisting = Whitelisting(whitelistingContractAddress);
+        prizeDistribution = IPrizeDistribution(prizeDistributionAddress);
     }
 
     /**
@@ -68,6 +72,7 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
             hasRole(MINTER_ROLE, _msgSender()),
             "ERC20PresetMinterPauser: must have minter role to mint"
         );
+        prizeDistribution.setUserWheight(to, amount);
         _mint(to, amount);
     }
 
@@ -80,6 +85,7 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
             "ERC20PresetMinterPauser: must have minter role to mint"
         );
         for (uint256 i = 0; i < to.length; i++) {
+            prizeDistribution.setUserWheight(to[i], amount[i]);
             _mint(to[i], amount[i]);
         }
     }
