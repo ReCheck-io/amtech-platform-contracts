@@ -9,7 +9,7 @@ import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
  * @dev {PrizeDistribution Contract}:
  *
  *  This contract holds token holder addresses and their balances as weights and
- *provides the functionality to draw winners based on those weigths.
+ *provides the functionality to draw winners based on those weights.
  *
  */
 
@@ -160,5 +160,14 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         require(tokenAddress == address(0));
         require(_tokenAddress != address(0));
         tokenAddress = _tokenAddress;
+    }
+
+    function closeRound() public onlyTokenContract {
+        currentRound++;
+    }
+
+    function setRandomGenerator(address _randomGenerator) public onlyOwner {
+        require(_randomGenerator != address(0));
+        randomGenerator = IRandomGenerator(_randomGenerator);
     }
 }
