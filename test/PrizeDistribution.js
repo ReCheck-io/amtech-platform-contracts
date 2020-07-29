@@ -10,7 +10,7 @@ describe("Example", function () {
     let prizeDistribution;
     let mockRandomGenerator;
 
-    const USERS = 10;
+    const USERS = 8;
 
     beforeEach(async () => {
         deployer = new etherlime.EtherlimeGanacheDeployer();
@@ -22,11 +22,11 @@ describe("Example", function () {
             const wallet = new ethers.Wallet.createRandom();
             const rand = (Math.random() * 10 ** 18) * 123;
             console.log(wallet.address, rand);
-            console.log('END');
 
             let randBigNum = ethers.BigNumber.from(Math.floor(rand).toString());
             await prizeDistribution.setUserWheight(wallet.address, randBigNum);
         }
+        console.log('END', USERS);
 
     });
 

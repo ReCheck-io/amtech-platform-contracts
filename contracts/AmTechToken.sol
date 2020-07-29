@@ -71,6 +71,19 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
         _mint(to, amount);
     }
 
+    function mintMultiple(address[] memory to, uint256[] memory amount)
+        public
+        virtual
+    {
+        require(
+            hasRole(MINTER_ROLE, _msgSender()),
+            "ERC20PresetMinterPauser: must have minter role to mint"
+        );
+        for (uint256 i = 0; i < to.length; i++) {
+            _mint(to[i], amount[i]);
+        }
+    }
+
     /**
      * Overrides default ERC20 transfer
      *

@@ -1,6 +1,7 @@
 pragma solidity ^0.6.0;
 
 import "./interfaces/IRandomGenerator.sol";
+import "./interfaces/IPrizeDistribution.sol";
 import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 
@@ -12,7 +13,7 @@ import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
  *
  */
 
-contract PrizeDistribution is Ownable {
+contract PrizeDistribution is Ownable, IPrizeDistribution {
     using SafeMath for uint256;
 
     IRandomGenerator public randomGenerator;
@@ -58,10 +59,10 @@ contract PrizeDistribution is Ownable {
         uint256 random = randomGenerator.rollTheDice(userSeed);
         for (uint256 i = 0; i < _n; i++) {
             winningPosition =
-                totalSupply %
-                tokenHolderWeights[(random * (i + 1)) %
-                    tokenHolderWeights.length]
-                    .add(random);
+                tokenHolderWeights[random.mul(i) % tokenHolderWeights.length]
+                    .mul(random) %
+                totalSupply;
+
             address winner = findWinner(winningPosition);
 
             Winner memory currentWinner = Winner(winner, winningPosition);
@@ -95,7 +96,11 @@ contract PrizeDistribution is Ownable {
      * - should be executable only from token contract
      *
      */
-    function setUserWheight(address tokenHolder, uint256 weight) public {
+    function setUserWheight(address tokenHolder, uint256 weight)
+        public
+        override
+        returns (bool)
+    {
         if (!indexToHolderAddress[tokenHolder].isActiv) {
             tokenHolders.push(tokenHolder);
             tokenHolderWeights.push(weight);
@@ -111,6 +116,7 @@ contract PrizeDistribution is Ownable {
                 .add(weight);
             totalSupply = totalSupply.add(weight);
         }
+        return true;
     }
 
     function getUserInfo(address tokenHolder)

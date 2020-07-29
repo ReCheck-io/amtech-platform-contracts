@@ -11,6 +11,6 @@ contract mockRandomGenerator is IRandomGenerator {
         override
         returns (uint256)
     {
-        return userProvidedSeed.add(block.timestamp);
+        return userProvidedSeed.mul(block.timestamp);
     }
 }
