@@ -23,13 +23,16 @@ contract PrizeDistribution is Ownable {
     mapping(address => UserStatus) indexToHolderAddress;
 
     uint256 public currentRound;
-    mapping(uint256 => uint256[]) public roundsAndWinningPositions;
-
-    address[] public currentRoundWinnersAddress;
+    mapping(uint256 => Winner[]) public roundsAndWinningPositions;
 
     struct UserStatus {
         uint256 index;
         bool isActiv;
+    }
+
+    struct Winner {
+        address winner;
+        uint256 position;
     }
 
     /**
@@ -54,14 +57,15 @@ contract PrizeDistribution is Ownable {
         uint256 winningPosition;
         uint256 random = randomGenerator.rollTheDice(userSeed);
         for (uint256 i = 0; i < _n; i++) {
-            winningPosition = (
-                // TODO: (i + 1)?
-                tokenHolderWeights[(random * (i + 1)) % tokenHolders.length]
-            );
-            roundsAndWinningPositions[currentRound].push(winningPosition);
-
+            winningPosition =
+                totalSupply %
+                tokenHolderWeights[(random * (i + 1)) %
+                    tokenHolderWeights.length]
+                    .add(random);
             address winner = findWinner(winningPosition);
-            currentRoundWinnersAddress.push(winner);
+
+            Winner memory currentWinner = Winner(winner, winningPosition);
+            roundsAndWinningPositions[currentRound].push(currentWinner);
         }
         return true;
     }
@@ -72,12 +76,12 @@ contract PrizeDistribution is Ownable {
      * Returns the winning address
      *
      */
-    function findWinner(uint256 winningPosition) public view returns (address) {
+    function findWinner(uint256 random) public view returns (address) {
         uint256 drawedBalances = 0;
-        for (uint256 i = 0; i < tokenHolderWeights.length; i++) {
+        for (uint256 i = 0; i < tokenHolders.length; i++) {
             drawedBalances = drawedBalances.add(tokenHolderWeights[i]);
 
-            if (drawedBalances > winningPosition) {
+            if (drawedBalances > random) {
                 return tokenHolders[i];
             }
         }
@@ -119,5 +123,24 @@ contract PrizeDistribution is Ownable {
             indexToHolderAddress[tokenHolder].index,
             indexToHolderAddress[tokenHolder].isActiv
         );
+    }
+
+    function getWinnerPerRound(uint256 round, uint256 position)
+        public
+        view
+        returns (address, uint256)
+    {
+        return (
+            roundsAndWinningPositions[round][position].winner,
+            roundsAndWinningPositions[round][position].position
+        );
+    }
+
+    function getRoundWinnersCount(uint256 round) public view returns (uint256) {
+        return (roundsAndWinningPositions[round].length);
+    }
+
+    function getUserCount() public view returns (uint256) {
+        return tokenHolders.length;
     }
 }

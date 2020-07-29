@@ -1,70 +1,52 @@
 const etherlime = require("etherlime-lib");
 const ethers = require('ethers');
-const PriceDistribution = require('../build/PrizeDistribution.json');
+const PrizeDistribution = require('../build/PrizeDistribution.json');
 const MockRandomGenerator = require('../build/MockRandomGenerator.json');
 
 describe("Example", function () {
     this.timeout(100000);
 
     let deployer;
-    let priceDistribution;
+    let prizeDistribution;
     let mockRandomGenerator;
 
     const USERS = 10;
 
-    before(async () => {
+    beforeEach(async () => {
         deployer = new etherlime.EtherlimeGanacheDeployer();
         mockRandomGenerator = await deployer.deploy(MockRandomGenerator);
-        priceDistribution = await deployer.deploy(PriceDistribution, {}, mockRandomGenerator.contractAddress);
+        prizeDistribution = await deployer.deploy(PrizeDistribution, {}, mockRandomGenerator.contractAddress);
 
 
-        // for (let i = 0; i < USERS; i++) {
-        //     const wallet = new ethers.Wallet.createRandom();
-        //     const rand = Math.random() * 10 ** 18;
-        //     let randBigNum = ethers.BigNumber.from(Math.floor(rand).toString());
-        //     await priceDistribution.setUserWheight(wallet.address, randBigNum);
-        // }
-        // console.log('Done');
+        for (let i = 0; i < USERS; i++) {
+            const wallet = new ethers.Wallet.createRandom();
+            const rand = (Math.random() * 10 ** 18) * 123;
+            console.log(wallet.address, rand);
+            console.log('END');
 
-    });
-
-    it('should add ten acounts ', async () => {
-        const users = 10;
-        for (let i = 0; i < users; i++) {
-            const userAddress = accounts[i].signer.address;
-            const userWeight = 1 * (i + 1) * 10 ** 18;
-            await priceDistribution.setUserWheight(userAddress, userWeight.toString());
+            let randBigNum = ethers.BigNumber.from(Math.floor(rand).toString());
+            await prizeDistribution.setUserWheight(wallet.address, randBigNum);
         }
 
-        // for (let i = 0; i < users; i++) {
-        //     const userAddress = await priceDistribution.tokenHolders(i);
-        //     const userWeight = await priceDistribution.tokenHolderWeights(i);
-
-        //     assert.strictEqual(userAddress, accounts[i].signer.address);
-        //     assert.equal(userWeight.toString(), 1 * (i + 1) * 10 ** 18);
-        // }
-
-        // for (let i = 0; i < users; i++) {
-        //     let userInfo = await priceDistribution.getUserInfo(accounts[i].signer.address);
-
-        //     assert.equal(userInfo.index, i)
-        //     assert.equal(userInfo.isActiv, true)
-        // }
     });
 
-    it('should get random number', async () => {
+    it(`should add ${USERS} accounts`, async () => {
+        let users = await prizeDistribution.getUserCount();
+        assert.equal(users, USERS);
+    })
 
+    it.only('should get winners', async () => {
         const winners = 10;
         const seed = 123
-        await priceDistribution.drawWinners(winners, seed);
-        for (let i = 0; i < winners; i++) {
-            // let res = await priceDistribution.roundsAndWinningPositions(i)
-            // console.log(res.toString());
-            // let res2 = await priceDistribution.currentRoundWinnersAddress(i)
-            // console.log(res2);
+        await prizeDistribution.drawWinners(winners, seed);
+        let roundWinners = await prizeDistribution.getRoundWinnersCount(0);
+        assert.equal(winners, roundWinners.toString());
+
+        for (let i = 0; i < roundWinners; i++) {
+            let winner = await prizeDistribution.getWinnerPerRound(0, i);
+            console.log(winner[0], winner[1].toString());
 
         }
     })
 
-
-});
+})
