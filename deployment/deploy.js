@@ -64,6 +64,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
   let tx = await contract.drawWinners("1", "12234324213");
   await contract.verboseWaitForTransaction(tx, "tx");
 
+  // etherlime compile --solcVersion 0.6.6
   // etherlime deploy --compile false --secret 0x2956b7afa2b93c048f2281be59a5d0ecaf247c5f82430a2209143c1e973c5b82 --network kovan
 };
 
