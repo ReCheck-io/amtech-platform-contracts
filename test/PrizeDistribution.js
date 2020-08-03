@@ -19,18 +19,24 @@ describe("Example", function () {
         mockRandomGenerator = await deployer.deploy(MockRandomGenerator);
         prizeDistribution = await deployer.deploy(PrizeDistribution, {}, mockRandomGenerator.contractAddress);
 
+        await prizeDistribution.setTokenAddress(tokenContract);
 
-        // for (let i = 0; i < USERS; i++) {
-        //     const wallet = new ethers.Wallet.createRandom();
-        //     const rand = (Math.random() * 10 ** 18) * 123;
-        //     console.log(wallet.address, rand);
+        for (let i = 0; i < USERS; i++) {
+            const wallet = new ethers.Wallet.createRandom();
+            const rand = (Math.random() * 10 ** 18) * 123;
+            console.log(wallet.address, rand);
 
-        //     let randBigNum = ethers.BigNumber.from(Math.floor(rand).toString());
-        //     await prizeDistribution.setUserWheight(wallet.address, randBigNum);
-        // }
-        // console.log('END', USERS);
+            let randBigNum = ethers.BigNumber.from(Math.floor(rand).toString());
+            await prizeDistribution.setUserWeight(wallet.address, randBigNum);
+        }
+        console.log('END', USERS);
 
     });
+
+    it.only('should set token address from owner', async () => {
+        console.log('Key Y Pi');
+
+    })
 
     it('should set token address from owner', async () => {
         await prizeDistribution.setTokenAddress(tokenContract);

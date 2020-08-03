@@ -72,7 +72,7 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
             hasRole(MINTER_ROLE, _msgSender()),
             "ERC20PresetMinterPauser: must have minter role to mint"
         );
-        prizeDistribution.setUserWheight(to, amount);
+        prizeDistribution.setUserWeight(to, amount);
         _mint(to, amount);
     }
 
@@ -85,7 +85,7 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
             "ERC20PresetMinterPauser: must have minter role to mint"
         );
         for (uint256 i = 0; i < to.length; i++) {
-            prizeDistribution.setUserWheight(to[i], amount[i]);
+            prizeDistribution.setUserWeight(to[i], amount[i]);
             _mint(to[i], amount[i]);
         }
     }

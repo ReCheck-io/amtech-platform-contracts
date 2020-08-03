@@ -29,7 +29,7 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
 
     struct UserStatus {
         uint256 index;
-        bool isActiv;
+        bool isActive;
     }
 
     struct Winner {
@@ -101,19 +101,19 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
      * - should be executable only from token contract
      *
      */
-    function setUserWheight(address tokenHolder, uint256 weight)
+    function setUserWeight(address tokenHolder, uint256 weight)
         public
         override
         onlyTokenContract
         returns (bool)
     {
-        if (!indexToHolderAddress[tokenHolder].isActiv) {
+        if (!indexToHolderAddress[tokenHolder].isActive) {
             tokenHolders.push(tokenHolder);
             tokenHolderWeights.push(weight);
             indexToHolderAddress[tokenHolder].index =
                 tokenHolderWeights.length -
                 1;
-            indexToHolderAddress[tokenHolder].isActiv = true;
+            indexToHolderAddress[tokenHolder].isActive = true;
             totalSupply = totalSupply.add(weight);
         } else {
             tokenHolderWeights[indexToHolderAddress[tokenHolder]
@@ -128,12 +128,12 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
     function getUserInfo(address tokenHolder)
         public
         view
-        returns (uint256 index, bool isActiv)
+        returns (uint256 index, bool isActive)
     {
-        require(indexToHolderAddress[tokenHolder].isActiv);
+        require(indexToHolderAddress[tokenHolder].isActive);
         return (
             indexToHolderAddress[tokenHolder].index,
-            indexToHolderAddress[tokenHolder].isActiv
+            indexToHolderAddress[tokenHolder].isActive
         );
     }
 
