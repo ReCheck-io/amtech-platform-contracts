@@ -11,6 +11,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "^3.1.0",
     "etherlime-lib": "^1.2.3",
-    "ethers": "^5.0.5"
+    "ethers": "^5.0.5",
+    "solc": "^0.7.0"
   }
 }
