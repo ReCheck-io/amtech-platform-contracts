@@ -25,6 +25,6 @@ jobs:
       - name: build frontend
         run: |
           npm install
-          npm install etherlime -g
+          (npm install etherlime -g&)
           etherlime ganache
           etherlime test
