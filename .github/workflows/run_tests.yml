@@ -27,4 +27,4 @@ jobs:
           npm install
           npm install etherlime -g
           (etherlime ganache&)
-          etherlime test
+          etherlime test --solcVersion 0.6.6
