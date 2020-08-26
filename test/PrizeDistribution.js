@@ -33,11 +33,6 @@ describe("Example", function () {
 
     });
 
-    it.only('should set token address from owner', async () => {
-        console.log('Key Y Pi');
-
-    })
-
     it('should set token address from owner', async () => {
         await prizeDistribution.setTokenAddress(tokenContract);
         let tokenAddress = await prizeDistribution.tokenAddress();

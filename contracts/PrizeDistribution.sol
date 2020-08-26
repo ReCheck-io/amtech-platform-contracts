@@ -26,7 +26,6 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
 
     uint256 public currentRound;
     mapping(uint256 => Winner[]) public roundsAndWinningPositions;
-
     struct UserStatus {
         uint256 index;
         bool isActive;
