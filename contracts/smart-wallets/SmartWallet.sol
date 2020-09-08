@@ -2,17 +2,23 @@ pragma experimental ABIEncoderV2;
 pragma solidity ^0.6.0;
 
 import "./ECDSA.sol";
-import "./ReentrancyGuard.sol";
 
 contract SmartWallet {
     uint256 public nonce;
     bool public initialised;
     bool internal _notEntered;
-    enum SignerState { None, Guardian, Owner }
-    mapping (address => SignerState) public isSigner;
+    enum SignerState {None, Guardian, Owner}
+    mapping(address => SignerState) public isSigner;
 
     event LogActionAuthorised(uint256 nonce, address signer);
-    event LogActionExecuted(uint256 nonce, address target, uint256 relayerReward, uint256 value, bytes data, bytes dataHashSignature);
+    event LogActionExecuted(
+        uint256 nonce,
+        address target,
+        uint256 relayerReward,
+        uint256 value,
+        bytes data,
+        bytes dataHashSignature
+    );
     event LogRewardsPaid(uint256 nonce, address relayer, uint256 rewardPaid);
     event LogOwnerAdded(address addedOwner);
     event LogGuardianAdded(address addedGuardian);
@@ -54,31 +60,36 @@ contract SmartWallet {
      * @param dataHashSignature - the result of owner.sign(keccak(previous params + nonce))
      * @return isValid - true if signed by owner, false otherwise
      */
-    function isValidOwnerTransaction(uint256 relayerReward,
+    function isValidOwnerTransaction(
+        uint256 relayerReward,
         address target,
         uint256 value,
         bytes memory data,
-        bytes memory dataHashSignature) internal view returns(bool isValid)
-    {
-        bytes32 dataHash = keccak256(abi.encodePacked(data, relayerReward, value, target, nonce));
+        bytes memory dataHashSignature
+    ) internal view returns (bool isValid) {
+        bytes32 dataHash = keccak256(
+            abi.encodePacked(data, relayerReward, value, target, nonce)
+        );
         address signer = getSigner(dataHash, dataHashSignature);
         return (isSigner[signer] == SignerState.Owner);
     }
 
-    
     /**
      * @dev Internal function used to verify that given meta transaction is signed by the owner or guardian.
      * All the params + nonce get packed and hashed and then this hash is used as originalData to recover the signature in the last param
      * Check the params of the previous function
      * @return isValid - true if signed by owner or guardian, false otherwise
      */
-    function isValidPriviligedTransaction(uint256 relayerReward,
+    function isValidPriviligedTransaction(
+        uint256 relayerReward,
         address target,
         uint256 value,
         bytes memory data,
-        bytes memory dataHashSignature) internal view returns(bool isValid)
-    {
-        bytes32 dataHash = keccak256(abi.encodePacked(data, relayerReward, value, target, nonce));
+        bytes memory dataHashSignature
+    ) internal view returns (bool isValid) {
+        bytes32 dataHash = keccak256(
+            abi.encodePacked(data, relayerReward, value, target, nonce)
+        );
         address signer = getSigner(dataHash, dataHashSignature);
         return (isSigner[signer] >= SignerState.Guardian);
     }
@@ -88,7 +99,7 @@ contract SmartWallet {
         _;
     }
 
-     modifier nonReentrant() {
+    modifier nonReentrant() {
         // On the first call to nonReentrant, _notEntered will be true
         require(_notEntered, "ReentrancyGuard: reentrant call");
 
@@ -121,11 +132,11 @@ contract SmartWallet {
      * @param addressHash - hash of the signer address
      * @param addressSig - signature produced by owner or guardian of the hash of the signer
      */
-    function addOwner(address _signer, bytes32 addressHash, bytes memory addressSig)
-        public
-        onlySelf
-        onlyPrivileged(addressHash, addressSig)
-    {
+    function addOwner(
+        address _signer,
+        bytes32 addressHash,
+        bytes memory addressSig
+    ) public onlySelf onlyPrivileged(addressHash, addressSig) {
         require(_signer != address(0x0));
         require(keccak256(abi.encodePacked(_signer)) == addressHash);
         isSigner[_signer] = SignerState.Owner;
@@ -139,11 +150,11 @@ contract SmartWallet {
      * @param addressHash - hash of the guardian address
      * @param addressSig - signature produced by owner of the hash of the guardian
      */
-    function addGuardian(address _guardian, bytes32 addressHash, bytes memory addressSig)
-        public
-        onlySelf
-        onlyOwner(addressHash, addressSig)
-    {
+    function addGuardian(
+        address _guardian,
+        bytes32 addressHash,
+        bytes memory addressSig
+    ) public onlySelf onlyOwner(addressHash, addressSig) {
         require(_guardian != address(0x0));
         require(keccak256(abi.encodePacked(_guardian)) == addressHash);
         isSigner[_guardian] = SignerState.Guardian;
@@ -157,11 +168,11 @@ contract SmartWallet {
      * @param addressHash - hash of the guardian address
      * @param addressSig - signature produced by owner of the hash of the guardian
      */
-    function removeGuardian(address _guardian, bytes32 addressHash, bytes memory addressSig)
-        public
-        onlySelf
-        onlyOwner(addressHash, addressSig)
-    {
+    function removeGuardian(
+        address _guardian,
+        bytes32 addressHash,
+        bytes memory addressSig
+    ) public onlySelf onlyOwner(addressHash, addressSig) {
         require(_guardian != address(0x0));
         require(keccak256(abi.encodePacked(_guardian)) == addressHash);
         require(isSigner[_guardian] == SignerState.Guardian);
@@ -180,9 +191,7 @@ contract SmartWallet {
         address _signer,
         bytes32 addressHash,
         bytes memory addressSig
-    ) public 
-    onlySelf
-    onlyPrivileged(addressHash, addressSig) {
+    ) public onlySelf onlyPrivileged(addressHash, addressSig) {
         require(_signer != address(0x0));
         require(keccak256(abi.encodePacked(_signer)) == addressHash);
         require(isSigner[_signer] == SignerState.Owner);
@@ -191,39 +200,54 @@ contract SmartWallet {
     }
 
     /**
-     * @dev executes a list of transactions only if they are formatted and signed by the owner of this. Anyone can call execute. Nonce introduced as anti replay attack mechanism.
+     * @dev executes a list of transactions only if they are formatted and signed by the owner of this. Anyone can call execute. Nonce introduced as anti replay attack mechanism.
      * Calls that target this contract can be authorised by the guardian in order to allow for add/remove methods to be called
-     * 
-     * @param target - the contracts to be called
-     * @param relayerReward - the value sto be sent back to the relayer
-     * @param value - the values to be sent to the target
-     * @param data - the datas to be sent to be target
-     * @param dataHashSignature - array of signed bytes of the keccak256 of target, nonce, value and data keccak256(data, relayerReward, value, target, nonce)
-     */
+     *
+     * @param target - the contracts to be called
+     * @param relayerReward - the value sto be sent back to the relayer
+     * @param value - the values to be sent to the target
+     * @param data - the datas to be sent to be target
+     * @param dataHashSignature - array of signed bytes of the keccak256 of target, nonce, value and data keccak256(data, relayerReward, value, target, nonce)
+     */
     function execute(
         address[] calldata target,
         uint256[] calldata relayerReward,
         uint256[] calldata value,
         bytes[] calldata data,
         bytes[] calldata dataHashSignature
-    )
-        external
-        payable
-        nonReentrant
-        returns (bool)
-    {
-
+    ) external payable nonReentrant returns (bool) {
         require(target.length <= 8, "Too many transactions");
 
-        for(uint256 i = 0; i < target.length; i++) {
-            if(target[i] == address(this)) {
-                require(isValidPriviligedTransaction(relayerReward[i], target[i], value[i], data[i], dataHashSignature[i]), "execute :: Invalid priviliged authorisation");    
+        for (uint256 i = 0; i < target.length; i++) {
+            if (target[i] == address(this)) {
+                require(
+                    isValidPriviligedTransaction(
+                        relayerReward[i],
+                        target[i],
+                        value[i],
+                        data[i],
+                        dataHashSignature[i]
+                    ),
+                    "execute :: Invalid priviliged authorisation"
+                );
             } else {
-                require(isValidOwnerTransaction(relayerReward[i], target[i], value[i], data[i], dataHashSignature[i]), "execute :: Invalid owner authorisation");
+                require(
+                    isValidOwnerTransaction(
+                        relayerReward[i],
+                        target[i],
+                        value[i],
+                        data[i],
+                        dataHashSignature[i]
+                    ),
+                    "execute :: Invalid owner authorisation"
+                );
             }
             (bool success, ) = target[i].call.value(value[i])(data[i]);
             require(success, "execute :: Intended transaction reverted");
-            require(rewardMsgSender(relayerReward[i]), "Could not reward the msg.sender");
+            require(
+                rewardMsgSender(relayerReward[i]),
+                "Could not reward the msg.sender"
+            );
             emit LogActionExecuted(
                 nonce,
                 target[i],
@@ -242,12 +266,11 @@ contract SmartWallet {
      * @param reward - the wei to send back to the relayer
      */
     function rewardMsgSender(uint256 reward) internal returns (bool) {
-        if(reward > 0) {
+        if (reward > 0) {
             msg.sender.transfer(reward);
             emit LogRewardsPaid(nonce, msg.sender, reward);
         }
-        
+
         return true;
     }
-
 }
