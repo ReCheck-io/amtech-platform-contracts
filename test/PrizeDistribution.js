@@ -24,19 +24,27 @@ describe("Example", function () {
         for (let i = 0; i < USERS; i++) {
             const wallet = new ethers.Wallet.createRandom();
             const rand = (Math.random() * 10 ** 18) * 123;
-            console.log(wallet.address, rand);
+            // console.log(wallet.address, rand);
 
             let randBigNum = ethers.BigNumber.from(Math.floor(rand).toString());
             await prizeDistribution.setUserWeight(wallet.address, randBigNum);
         }
-        console.log('END', USERS);
+        // console.log('END', USERS);
 
     });
 
-    it('should set token address from owner', async () => {
-        await prizeDistribution.setTokenAddress(tokenContract);
-        let tokenAddress = await prizeDistribution.tokenAddress();
-        assert.equal(tokenAddress, tokenContract);
+    it.only('should set token address from owner', async () => {
+
+        const wallet = new ethers.Wallet.createRandom();
+        const rand = (Math.random() * 10 ** 18) * 123;
+        // console.log(wallet.address, rand);
+
+        let randBigNum = ethers.BigNumber.from(Math.floor(rand).toString());
+        await prizeDistribution.setUserWeight(wallet.address, randBigNum);
+
+        // await prizeDistribution.setTokenAddress(tokenContract);
+        // let tokenAddress = await prizeDistribution.tokenAddress();
+        // assert.equal(tokenAddress, tokenContract);
     })
 
     it('should revert if not owner tries to set token address', async () => {
