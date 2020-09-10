@@ -72,7 +72,7 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
             hasRole(MINTER_ROLE, _msgSender()),
             "ERC20PresetMinterPauser: must have minter role to mint"
         );
-        prizeDistribution.setUserWeight(to, amount);
+        // prizeDistribution.setUserWeight(to, amount);
         _mint(to, amount);
     }
 

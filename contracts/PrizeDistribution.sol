@@ -26,6 +26,10 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
 
     uint256 public currentRound;
     mapping(uint256 => Winner[]) public roundsAndWinningPositions;
+
+    mapping(address => uint256) public winnn;
+    // prizes[] public allPrizes;
+
     struct UserStatus {
         uint256 index;
         bool isActive;
@@ -49,6 +53,17 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         randomGenerator = IRandomGenerator(_randomGenerator);
     }
 
+    function setWinnn(address[] memory _address, uint256[] memory amount)
+        public
+    {
+        require(msg.sender != address(0));
+        require(msg.sender == tokenAddress);
+        
+        for (uint256 i = 0; i < _address.length; i++) {
+            winnn[_address[i]] = amount[i];
+        }
+    }
+
     // TODO: should set max number of winners per draw
     /**
      * @dev Draw _n number of winners based on verifiable random number, seed word and user weights and
@@ -60,19 +75,21 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
      * Can be called from any user
      */
     function drawWinners(uint256 _n, uint256 userSeed) public returns (bool) {
-        uint256 winningPosition;
+        require(msg.sender != address(0));
+        require(msg.sender == tokenAddress);
+        // uint256 winningPosition;
         uint256 random = randomGenerator.rollTheDice(userSeed);
-        for (uint256 i = 0; i < _n; i++) {
-            winningPosition =
-                tokenHolderWeights[random.mul(i) % tokenHolderWeights.length]
-                    .mul(random) %
-                totalSupply;
+        // for (uint256 i = 0; i < _n; i++) {
+        //     winningPosition =
+        //         tokenHolderWeights[random.mul(i) % tokenHolderWeights.length]
+        //             .mul(random) %
+        //         totalSupply;
 
-            address winner = findWinner(winningPosition);
+        //     address winner = findWinner(winningPosition);
 
-            Winner memory currentWinner = Winner(winner, winningPosition);
-            roundsAndWinningPositions[currentRound].push(currentWinner);
-        }
+        //     Winner memory currentWinner = Winner(winner, winningPosition);
+        //     roundsAndWinningPositions[currentRound].push(currentWinner);
+        // }
         return true;
     }
 
