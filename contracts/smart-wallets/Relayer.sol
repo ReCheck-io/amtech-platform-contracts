@@ -1,14 +1,17 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.6.6;
 
 import "./Address.sol";
 import "./Create2.sol";
 import "./ECDSA.sol";
 import "./ReentrancyGuard.sol";
 import "./ISmartWallet.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Relayer is ReentrancyGuard {
-    // TODO:  withdraw your money
+contract Relayer is ReentrancyGuard, Ownable {
     bytes public proxyBytecode;
+    event Withdraw(address indexed to, uint256 indexed amount);
+    event Received(address indexed from, uint256 indexed value);
+    uint256 public refunds;
 
     constructor(bytes memory _proxyBytecode) public {
         proxyBytecode = _proxyBytecode;
@@ -51,5 +54,19 @@ contract Relayer is ReentrancyGuard {
                 keccak256(abi.encodePacked(user)),
                 abi.encodePacked(proxyBytecode)
             );
+    }
+
+    function withdraw(address payable recipient, uint256 amount)
+        public
+        payable
+        onlyOwner
+    {
+        require(payable(address(this)).balance >= amount);
+        recipient.transfer(amount);
+        emit Withdraw(recipient, amount);
+    }
+
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
     }
 }

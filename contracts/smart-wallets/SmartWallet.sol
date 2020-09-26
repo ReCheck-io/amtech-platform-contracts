@@ -242,7 +242,7 @@ contract SmartWallet {
                     "execute :: Invalid owner authorisation"
                 );
             }
-            (bool success, ) = target[i].call.value(value[i])(data[i]);
+            (bool success, ) = target[i].call{value: value[i]}(data[i]);
             require(success, "execute :: Intended transaction reverted");
             require(
                 rewardMsgSender(relayerReward[i]),
