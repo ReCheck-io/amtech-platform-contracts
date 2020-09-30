@@ -163,9 +163,6 @@ describe('BulletinBoard', function () {
         })
 
         it('Should revert if one tries to cancel an already canceled order', async () => {
-            await amtechTokenContract.approve(bulletinBoardContract.contractAddress, tokensForSale);
-            await bulletinBoardContract.createOrder(tokensForSale, priceForTokens);
-
             const ordersPerUser = await bulletinBoardContract.getOrdersCountPerOrderer(aliceAccount.address);
             await bulletinBoardContract.cancelOrder(ordersPerUser.sub(1));
 
@@ -173,9 +170,6 @@ describe('BulletinBoard', function () {
         })
 
         it('Should revert if not order owner tries to cancel an order', async () => {
-            await amtechTokenContract.approve(bulletinBoardContract.contractAddress, tokensForSale);
-            await bulletinBoardContract.createOrder(tokensForSale, priceForTokens);
-
             const ordersPerUser = await bulletinBoardContract.getOrdersCountPerOrderer(aliceAccount.address);
             await assert.revert(bulletinBoardContract.from(bobAccount).cancelOrder(ordersPerUser.sub(1)));
 
@@ -220,11 +214,6 @@ describe('BulletinBoard', function () {
         })
 
         it('Should edit an order with less tokens for sale', async () => {
-
-            await amtechTokenContract.approve(bulletinBoardContract.contractAddress, tokensForSale);
-
-            await bulletinBoardContract.createOrder(tokensForSale, priceForTokens);
-
             const ordersPerUser = await bulletinBoardContract.getOrdersCountPerOrderer(aliceAccount.address);
 
             // ordersPerUser is the count, sub(1) to get the index
@@ -257,11 +246,6 @@ describe('BulletinBoard', function () {
         })
 
         it('Should not allow not order owner to edit the order', async () => {
-
-            await amtechTokenContract.approve(bulletinBoardContract.contractAddress, tokensForSale);
-
-            await bulletinBoardContract.createOrder(tokensForSale, priceForTokens);
-
             const ordersPerUser = await bulletinBoardContract.getOrdersCountPerOrderer(aliceAccount.address);
 
             const newTokensForSale = ethers.utils.parseEther('0.03');
@@ -274,11 +258,6 @@ describe('BulletinBoard', function () {
         })
 
         it('Should not allow editing an order with less token allowance', async () => {
-
-            await amtechTokenContract.approve(bulletinBoardContract.contractAddress, tokensForSale);
-
-            await bulletinBoardContract.createOrder(tokensForSale, priceForTokens);
-
             const ordersPerUser = await bulletinBoardContract.getOrdersCountPerOrderer(aliceAccount.address);
 
             const newTokensForSale = ethers.utils.parseEther('0.03');
@@ -290,12 +269,7 @@ describe('BulletinBoard', function () {
 
         })
 
-        it('Should revert if one tries to edin a canceled order', async () => {
-
-            await amtechTokenContract.approve(bulletinBoardContract.contractAddress, tokensForSale);
-
-            await bulletinBoardContract.createOrder(tokensForSale, priceForTokens);
-
+        it('Should revert if one tries to edit a canceled order', async () => {
             const ordersPerUser = await bulletinBoardContract.getOrdersCountPerOrderer(aliceAccount.address);
 
             await bulletinBoardContract.cancelOrder(ordersPerUser.sub(1));
