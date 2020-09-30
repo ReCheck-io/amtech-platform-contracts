@@ -183,7 +183,6 @@ contract BulletinBoard {
             ordersPerUser[_orderer].orders[_orderIndex].tokensForSale
         );
 
-        // TODO: what if msg.value is more
         _orderer.transfer(
             ordersPerUser[_orderer].orders[_orderIndex].priceForTokens
         );
