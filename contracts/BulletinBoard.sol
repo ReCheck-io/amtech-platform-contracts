@@ -19,10 +19,10 @@ contract BulletinBoard {
     /**
      * @dev Passes the address and sets the instance of the AmTech Token
      *
-     * AmTech Token can only be set once during
+     * AmTech Token can only be set once - during
      * construction.
      */
-    constructor(address _amtechToken) public onlyValidAdress(_amtechToken) {
+    constructor(address _amtechToken) public onlyValidAddress(_amtechToken) {
         amtechToken = IERC20(_amtechToken);
     }
 
@@ -62,7 +62,7 @@ contract BulletinBoard {
 
     event OrderCanceled(address indexed orderer, uint256 orderIndex);
 
-    modifier onlyValidAdress(address _address) {
+    modifier onlyValidAddress(address _address) {
         require(_address != address(0));
         _;
     }
@@ -71,7 +71,7 @@ contract BulletinBoard {
      * @dev createOrder allows msg.sender to create an order
      *
      *     * Requirements:
-     * this contract should have the needed allowance to future distribution of the tokens for sale
+     * this contract should have the needed allowance for the future distribution of the tokens for sale
      *
      * Emits: OrderCreated event with orderer address, amount tokens for sale and price for tokens
      */
@@ -110,7 +110,7 @@ contract BulletinBoard {
      * @dev editOrder allows msg.sender to edit his own specific and active order
      *
      *     * Requirements:
-     * this contract should have the needed allowance to future distribution of the tokens for sale
+     * this contract should have the needed allowance for the future distribution of the tokens for sale
      *
      * Emits: OrderEdited event with orderers address, order index, new amount tokens for sale and new price for tokens
      */
@@ -173,12 +173,17 @@ contract BulletinBoard {
 
         ordersPerUser[_orderer].orders[_orderIndex].isActive = false;
 
+        ordersPerUser[_orderer].totalTokensForSale = ordersPerUser[_orderer]
+            .totalTokensForSale
+            .sub(ordersPerUser[_orderer].orders[_orderIndex].tokensForSale);
+
         amtechToken.transferFrom(
             _orderer,
             msg.sender,
             ordersPerUser[_orderer].orders[_orderIndex].tokensForSale
         );
 
+        // TODO: what if msg.value is more
         _orderer.transfer(
             ordersPerUser[_orderer].orders[_orderIndex].priceForTokens
         );
@@ -189,8 +194,9 @@ contract BulletinBoard {
     }
 
     /**
-     * @dev allows an order holder to cancel a specific order
-     * Require msg.sender to be the order owner of a specific and active order
+     * @dev cancelOrder allows an order holder to cancel a specific order
+     *     * Requirements:
+     * msg.sender to be the order owner of a specific and active order
      */
     function cancelOrder(uint256 _orderIndex) external returns (bool) {
         require(ordersPerUser[msg.sender].orders[_orderIndex].isActive);
@@ -203,32 +209,29 @@ contract BulletinBoard {
     }
 
     /**
-     * @return all orderers count
+     * @dev getOrderersCount returns all orderers count
      */
-    function getOrderersCount() external view returns (uint256) {
+    function getOrderersCount() external view returns (uint256 ordererCount) {
         return orderHolders.length;
     }
 
     /**
-     * @return all orders count for a specific orderer
+     * @dev getOrdersCountPerOrderer returns all orders count for a specific orderer
      */
     function getOrdersCountPerOrderer(address _orderer)
         external
         view
-        returns (uint256)
+        returns (uint256 orderCount)
     {
         return ordersPerUser[_orderer].ordersCount;
     }
 
     /**
-     * @dev External function returns specific order data
+     * @dev getOrderDetails returns data for a specific order
      *
-     * @param address _orderer is the address of the orderer
-     * @param address _orderIndex is the index of the order
-     *
-     * @return tokensForSale, amount of the tokens to be sold
-     * @return priceForTokens, amount of the ethers required for tokensForSale
-     * @return isActive, the status of the order
+     * @return tokensForSale uint256, amount of tokens for sale
+     * @return priceForTokens uint256, amount of ethers required for buying tokensForSale
+     * @return isActive bool, the status of the order
      */
     function getOrderDetails(address _orderer, uint256 _orderIndex)
         external
@@ -247,11 +250,9 @@ contract BulletinBoard {
     }
 
     /**
-     * @dev Private function to check for existing orderer address
+     * @dev check for existing orderer address
      *
-     * @param address _orderHolder is the address of the orderer
-     *
-     * @return true if address exists
+     * returns bool true if address exists
      */
     function contains(address _orderHolder) private view returns (bool) {
         if (orderHolders.length == 0) {
