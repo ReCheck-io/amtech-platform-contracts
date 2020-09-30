@@ -140,10 +140,11 @@ describe('BulletinBoard', function () {
     })
 
     describe('Cancel orders', function () {
-        it('Should cancel an order', async () => {
+        beforeEach(async () => {
             await amtechTokenContract.approve(bulletinBoardContract.contractAddress, tokensForSale);
             await bulletinBoardContract.createOrder(tokensForSale, priceForTokens);
-
+        })
+        it('Should cancel an order', async () => {
             const ordersPerUser = await bulletinBoardContract.getOrdersCountPerOrderer(aliceAccount.address);
             await bulletinBoardContract.cancelOrder(ordersPerUser.sub(1));
 
@@ -182,12 +183,11 @@ describe('BulletinBoard', function () {
     })
 
     describe('Edit orders', function () {
-        it('Should edit an order with more tokens for sale', async () => {
-
+        beforeEach(async () => {
             await amtechTokenContract.approve(bulletinBoardContract.contractAddress, tokensForSale);
-
             await bulletinBoardContract.createOrder(tokensForSale, priceForTokens);
-
+        })
+        it('Should edit an order with more tokens for sale', async () => {
             const ordersPerUser = await bulletinBoardContract.getOrdersCountPerOrderer(aliceAccount.address);
 
             // ordersPerUser is the count, sub(1) to get the index
