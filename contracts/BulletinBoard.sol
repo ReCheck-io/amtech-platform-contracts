@@ -167,7 +167,7 @@ contract BulletinBoard {
     {
         require(ordersPerUser[_orderer].orders[_orderIndex].isActive);
         require(
-            msg.value >=
+            msg.value ==
                 ordersPerUser[_orderer].orders[_orderIndex].priceForTokens
         );
 
