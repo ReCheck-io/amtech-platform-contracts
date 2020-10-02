@@ -60,7 +60,7 @@ contract BulletinBoard {
     event OfferCanceled(address indexed seller, uint256 offerId);
 
     /**
-     * @dev createOffer allows msg.sender to create an order
+     * @dev createOffer allows msg.sender to create an offer
      *
      *     * Requirements:
      * this contract should have the needed allowance for the future distribution of the tokens for sale
@@ -99,9 +99,9 @@ contract BulletinBoard {
     }
 
     /**
-     * @dev cancelOffer allows an order holder to cancel a specific order
+     * @dev cancelOffer allows an offer holder to cancel a specific offer
      *     * Requirements:
-     * msg.sender to be the order owner of a specific and active order
+     * msg.sender to be the offer owner of a specific offer
      *
      * Emits: OfferCanceled event with seller address and offer id
      */
@@ -115,12 +115,12 @@ contract BulletinBoard {
     }
 
     /**
-     * @dev editOffer allows msg.sender to edit his own specific and active offer
+     * @dev editOffer allows msg.sender to edit his own specific offer
      *
      *     * Requirements:
      * this contract should have the needed allowance for the future distribution of the tokens for sale
      *
-     * Emits: OfferEdited event with seller address, order id, new amount tokens for sale and new price for tokens in eth
+     * Emits: OfferEdited event with seller address, offer id, new amount tokens for sale and new price for tokens in eth
      */
     function editOffer(
         uint256 _offerId,
@@ -157,7 +157,7 @@ contract BulletinBoard {
      * msg.sender to be whitelisted
      * msg.value to be equal to the price for the tokens
      *
-     * Emits: OfferBuyed event with orderer, buyer and order index
+     * Emits: OfferBuyed event with orderer, buyer and offer index
      */
     function buyOffer(
         address payable _seller,
@@ -192,7 +192,7 @@ contract BulletinBoard {
     /**
      * @dev removeOffer an internal function to delete an offer
      *     * Requirements:
-     * msg.sender to be the order owner of a specific and active order
+     * msg.sender to be the offer owner of a specific offer
      *
      * Emits: OfferCanceled event with seller address and offer id
      */

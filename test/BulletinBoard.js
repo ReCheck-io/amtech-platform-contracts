@@ -86,7 +86,7 @@ describe("Bulletin Board", function () {
                 const expectedEvent = "OfferCreated";
                 bulletinBoardContract.contract.on(expectedEvent, (_seller, _tokenAmount, _ethAmount) => {
 
-                    assert.strictEqual(aliceAccount.address, _seller, 'Orderer address is not emited correctly');
+                    assert.strictEqual(aliceAccount.address, _seller, 'Sellers address is not emited correctly');
                     assert(_tokenAmount.eq(tokenAmount));
                     assert(_ethAmount.eq(ethAmount));
                 });
@@ -103,7 +103,7 @@ describe("Bulletin Board", function () {
                 await assert.revert(bulletinBoardContract.from(bobAccount).createOffer(tokenAmount, ethAmount));
             })
 
-            it("Should Revert if sellet cereates an order with 0 tokens", async () => {
+            it("Should Revert if sellet cereates an offer with 0 tokens", async () => {
                 await amTechTokenContract.mint(bobAccount.address, amountToMint);
                 await amTechTokenContract.from(bobAccount).approve(bulletinBoardContract.contractAddress, tokenAmount);
 
@@ -111,7 +111,7 @@ describe("Bulletin Board", function () {
                 await assert.revert(bulletinBoardContract.from(bobAccount).createOffer(zeroTokens, ethAmount));
             })
 
-            it("Should Revert if sellet cereates an order with 0 ethers", async () => {
+            it("Should Revert if sellet cereates an offer with 0 ethers", async () => {
                 await amTechTokenContract.mint(bobAccount.address, amountToMint);
                 await amTechTokenContract.from(bobAccount).approve(bulletinBoardContract.contractAddress, tokenAmount);
 
@@ -207,10 +207,10 @@ describe("Bulletin Board", function () {
                 assert.ok(!exists);
 
                 const expectedEvent = "OfferCanceled";
-                bulletinBoardContract.contract.on(expectedEvent, (_seller, _orderId) => {
+                bulletinBoardContract.contract.on(expectedEvent, (_seller, _offerId) => {
 
-                    assert.strictEqual(aliceAccount.address, _seller, 'Orderer address is not emited correctly');
-                    assert(_orderId.eq(offersCount.sub(1)));
+                    assert.strictEqual(aliceAccount.address, _seller, 'Sellers address is not emited correctly');
+                    assert(_offerId.eq(offersCount.sub(1)));
                 });
             })
 
@@ -346,13 +346,13 @@ describe("Bulletin Board", function () {
             assert(newOffer.ethAmount.eq(newEthAmounth));
 
             const expectedEvent = "OfferEdited";
-            bulletinBoardContract.contract.on(expectedEvent, (_seller, _orderId, _tokenAmount, _ethersAmount) => {
+            bulletinBoardContract.contract.on(expectedEvent, (_seller, _offerId, _tokenAmount, _ethAmount) => {
 
                 assert.strictEqual(aliceAccount.address, _seller, 'Seller address is not emited correctly');
 
-                assert(_orderId.eq(offersCount - 1));
+                assert(_offerId.eq(offersCount - 1));
                 assert(_tokenAmount.eq(newTokenAmount));
-                assert(_ethersAmount.eq(newEthAmounth));
+                assert(_ethAmount.eq(newEthAmounth));
             });
         })
 
