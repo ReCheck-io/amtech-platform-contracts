@@ -6,6 +6,11 @@ pragma solidity ^0.6.6;
 import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 
+/**
+ * @title BulletinBoard
+ * @dev This contract allows AmTech token holders to transfer their tokens
+ * between other whitelisted platform users for a specific amount of ethers
+ */
 contract BulletinBoard {
     using SafeMath for uint256;
 
@@ -15,6 +20,17 @@ contract BulletinBoard {
     mapping(address => Offer[]) public offersPerSeller;
     mapping(address => bool) public exists;
     mapping(address => uint256) public totalTokensForSalePerSeller;
+
+    /**
+     * @dev Passes the address and sets the instance of the AmTech Token
+     *
+     * AmTech Token can only be set once - during
+     * construction.
+     */
+    constructor(address _amTechToken) public {
+        require(_amTechToken != address(0));
+        amTechToken = IERC20(_amTechToken);
+    }
 
     struct Offer {
         address seller;
@@ -43,11 +59,14 @@ contract BulletinBoard {
 
     event OfferCanceled(address indexed seller, uint256 offerId);
 
-    constructor(address _amTechToken) public {
-        require(_amTechToken != address(0));
-        amTechToken = IERC20(_amTechToken);
-    }
-
+    /**
+     * @dev createOffer allows msg.sender to create an order
+     *
+     *     * Requirements:
+     * this contract should have the needed allowance for the future distribution of the tokens for sale
+     *
+     * Emits: OfferCreated event with seller address, amount tokens for sale and price for tokens in eth
+     */
     function createOffer(uint256 _tokenAmount, uint256 _ethAmount)
         external
         returns (bool)
@@ -56,7 +75,7 @@ contract BulletinBoard {
         require(_ethAmount > 0);
         uint256 totalTokensForSale = totalTokensForSalePerSeller[msg.sender]
             .add(_tokenAmount);
-        require(isApproved(msg.sender, totalTokensForSale));
+        require(hasAllowance(msg.sender, totalTokensForSale));
         require(hasEnoughthTokens(msg.sender, totalTokensForSale));
 
         totalTokensForSalePerSeller[msg.sender] = totalTokensForSale;
@@ -79,6 +98,13 @@ contract BulletinBoard {
         return true;
     }
 
+    /**
+     * @dev cancelOffer allows an order holder to cancel a specific order
+     *     * Requirements:
+     * msg.sender to be the order owner of a specific and active order
+     *
+     * Emits: OfferCanceled event with seller address and offer id
+     */
     function cancelOffer(uint256 _sellerId, uint256 _offerId)
         external
         returns (bool)
@@ -88,6 +114,14 @@ contract BulletinBoard {
         return true;
     }
 
+    /**
+     * @dev editOffer allows msg.sender to edit his own specific and active offer
+     *
+     *     * Requirements:
+     * this contract should have the needed allowance for the future distribution of the tokens for sale
+     *
+     * Emits: OfferEdited event with seller address, order id, new amount tokens for sale and new price for tokens in eth
+     */
     function editOffer(
         uint256 _offerId,
         uint256 _tokenAmount,
@@ -100,7 +134,7 @@ contract BulletinBoard {
             .sub(offersPerSeller[msg.sender][_offerId].tokenAmount)
             .add(_tokenAmount);
 
-        require(isApproved(msg.sender, totalTokensForSale));
+        require(hasAllowance(msg.sender, totalTokensForSale));
         require(hasEnoughthTokens(msg.sender, totalTokensForSale));
 
         totalTokensForSalePerSeller[msg.sender] = totalTokensForSale;
@@ -116,6 +150,15 @@ contract BulletinBoard {
         return true;
     }
 
+    /**
+     * @dev buyOffer allows msg.sender to purchase a specific offer
+     *
+     *     * Requirements:
+     * msg.sender to be whitelisted
+     * msg.value to be equal to the price for the tokens
+     *
+     * Emits: OfferBuyed event with orderer, buyer and order index
+     */
     function buyOffer(
         address payable _seller,
         uint256 _sellerId,
@@ -146,11 +189,18 @@ contract BulletinBoard {
         return offersPerSeller[_seller].length;
     }
 
+    /**
+     * @dev removeOffer an internal function to delete an offer
+     *     * Requirements:
+     * msg.sender to be the order owner of a specific and active order
+     *
+     * Emits: OfferCanceled event with seller address and offer id
+     */
     function removeOffer(
         address _offerOwner,
         uint256 _offerId,
         uint256 _sellerId
-    ) private {
+    ) private returns (bool) {
         require(allSellers[_sellerId] == _offerOwner);
 
         if (getOffersPerSellerCount(_offerOwner) - 1 == _offerId) {
@@ -158,24 +208,35 @@ contract BulletinBoard {
 
             if (getOffersPerSellerCount(_offerOwner) == 0) {
                 exists[_offerOwner] = false;
-
-                if (getSellersCount() - 1 == _sellerId) {
-                    allSellers.pop();
-                } else {
-                    allSellers[_sellerId] = allSellers[getSellersCount() - 1];
-                    allSellers.pop();
-                }
+                rearrangeAllSellers(_sellerId);
             }
-            return;
+            return true;
         }
 
         offersPerSeller[_offerOwner][_offerId] = offersPerSeller[msg
             .sender][getOffersPerSellerCount(_offerOwner) - 1];
 
         offersPerSeller[_offerOwner].pop();
+        return true;
     }
 
-    function isApproved(address _seller, uint256 _amount)
+    /**
+     * @dev rearrangeAllSellers an internal function to rearrange allSellers array if needed
+     */
+    function rearrangeAllSellers(uint256 _sellerId) private returns (bool) {
+        if (getSellersCount() - 1 == _sellerId) {
+            allSellers.pop();
+        } else {
+            allSellers[_sellerId] = allSellers[getSellersCount() - 1];
+            allSellers.pop();
+        }
+        return true;
+    }
+
+    /**
+     * @dev hasAllowance validations for allowance(seller, this)
+     */
+    function hasAllowance(address _seller, uint256 _amount)
         private
         view
         returns (bool)
@@ -186,6 +247,9 @@ contract BulletinBoard {
         return false;
     }
 
+    /**
+     * @dev hasEnoughthTokens validations for sellers balance
+     */
     function hasEnoughthTokens(address _seller, uint256 _amount)
         private
         view
