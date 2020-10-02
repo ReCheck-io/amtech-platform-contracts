@@ -1,3 +1,6 @@
+/// @author Limechain
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.6.6;
 
 import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -9,7 +12,7 @@ contract BulletinBoard {
     IERC20 public amTechToken;
 
     address[] public allSellers;
-    mapping(address => Offer[]) public OffersPerSeller;
+    mapping(address => Offer[]) public offersPerSeller;
     mapping(address => bool) public exists;
     mapping(address => uint256) public totalTokensForSalePerSeller;
 
@@ -49,6 +52,8 @@ contract BulletinBoard {
         external
         returns (bool)
     {
+        require(_tokenAmount > 0);
+        require(_ethAmount > 0);
         uint256 totalTokensForSale = totalTokensForSalePerSeller[msg.sender]
             .add(_tokenAmount);
         require(isApproved(msg.sender, totalTokensForSale));
@@ -56,7 +61,7 @@ contract BulletinBoard {
 
         totalTokensForSalePerSeller[msg.sender] = totalTokensForSale;
 
-        OffersPerSeller[msg.sender].push(
+        offersPerSeller[msg.sender].push(
             Offer({
                 seller: msg.sender,
                 tokenAmount: _tokenAmount,
@@ -74,8 +79,11 @@ contract BulletinBoard {
         return true;
     }
 
-    function cancelOffer(uint256 _offerId) external returns (bool) {
-        removeOffer(msg.sender, _offerId);
+    function cancelOffer(uint256 _sellerId, uint256 _offerId)
+        external
+        returns (bool)
+    {
+        removeOffer(msg.sender, _offerId, _sellerId);
         emit OfferCanceled(msg.sender, _offerId);
         return true;
     }
@@ -85,8 +93,11 @@ contract BulletinBoard {
         uint256 _tokenAmount,
         uint256 _ethAmount
     ) external returns (bool) {
+        require(_tokenAmount > 0);
+        require(_ethAmount > 0);
+
         uint256 totalTokensForSale = totalTokensForSalePerSeller[msg.sender]
-            .sub(OffersPerSeller[msg.sender][_offerId].tokenAmount)
+            .sub(offersPerSeller[msg.sender][_offerId].tokenAmount)
             .add(_tokenAmount);
 
         require(isApproved(msg.sender, totalTokensForSale));
@@ -94,7 +105,7 @@ contract BulletinBoard {
 
         totalTokensForSalePerSeller[msg.sender] = totalTokensForSale;
 
-        OffersPerSeller[msg.sender][_offerId] = Offer({
+        offersPerSeller[msg.sender][_offerId] = Offer({
             seller: msg.sender,
             tokenAmount: _tokenAmount,
             ethAmount: _ethAmount
@@ -105,17 +116,18 @@ contract BulletinBoard {
         return true;
     }
 
-    function buyOffer(address payable _seller, uint256 _offerId)
-        public
-        payable
-        returns (bool)
-    {
-        Offer memory currentOffer = OffersPerSeller[_seller][_offerId];
+    function buyOffer(
+        address payable _seller,
+        uint256 _sellerId,
+        uint256 _offerId
+    ) public payable returns (bool) {
+        Offer memory currentOffer = offersPerSeller[_seller][_offerId];
         require(msg.value == currentOffer.ethAmount);
 
-        // TODO: view safeTransfer
         amTechToken.transferFrom(_seller, msg.sender, currentOffer.tokenAmount);
         _seller.transfer(currentOffer.ethAmount);
+
+        removeOffer(_seller, _offerId, _sellerId);
 
         emit OfferBuyed(_seller, msg.sender, _offerId);
 
@@ -131,21 +143,36 @@ contract BulletinBoard {
         view
         returns (uint256)
     {
-        return OffersPerSeller[_seller].length;
+        return offersPerSeller[_seller].length;
     }
 
-    function removeOffer(address _offerOwner, uint256 _offerId) private {
-        if (getOffersPerSellerCount(_offerOwner) == 1) {
-            OffersPerSeller[_offerOwner].pop();
-            // TODO: exists holds index
-            exists[_offerOwner] = false;
+    function removeOffer(
+        address _offerOwner,
+        uint256 _offerId,
+        uint256 _sellerId
+    ) private {
+        require(allSellers[_sellerId] == _offerOwner);
+
+        if (getOffersPerSellerCount(_offerOwner) - 1 == _offerId) {
+            offersPerSeller[_offerOwner].pop();
+
+            if (getOffersPerSellerCount(_offerOwner) == 0) {
+                exists[_offerOwner] = false;
+
+                if (getSellersCount() - 1 == _sellerId) {
+                    allSellers.pop();
+                } else {
+                    allSellers[_sellerId] = allSellers[getSellersCount() - 1];
+                    allSellers.pop();
+                }
+            }
             return;
         }
 
-        OffersPerSeller[_offerOwner][_offerId] = OffersPerSeller[msg
+        offersPerSeller[_offerOwner][_offerId] = offersPerSeller[msg
             .sender][getOffersPerSellerCount(_offerOwner) - 1];
 
-        OffersPerSeller[_offerOwner].pop();
+        offersPerSeller[_offerOwner].pop();
     }
 
     function isApproved(address _seller, uint256 _amount)

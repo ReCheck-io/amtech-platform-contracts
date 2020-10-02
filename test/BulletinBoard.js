@@ -5,6 +5,12 @@ const Whitelisting = require("../build/Whitelisting.json");
 const AmtechToken = require("../build/AmTechToken.json");
 const BulletinBoard = require("../build/BulletinBoard.json");
 
+const getRandomInt = function (min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min) + min); //The maximum is exclusive and the minimum is inclusive
+}
+
 describe("Bulletin Board", function () {
     this.timeout(20000);
     let deployer;
@@ -18,6 +24,7 @@ describe("Bulletin Board", function () {
     const aliceAccount = accounts[1].signer;
     const bobAccount = accounts[2].signer;
     const charlieAccount = accounts[3].signer;
+    const danieAccount = accounts[4].signer;
 
     const amountToMint = ethers.utils.parseEther("105");
     const tokenAmount = ethers.utils.parseEther("0.5");
@@ -42,37 +49,75 @@ describe("Bulletin Board", function () {
     })
 
     describe("Create an Offer", function () {
-        it("Should Create an Offer", async () => {
-            await amTechTokenContract.mint(aliceAccount.address, amountToMint);
-            await amTechTokenContract.from(aliceAccount).approve(bulletinBoardContract.contractAddress, tokenAmount);
+        describe("Create offer", function () {
+            beforeEach(async () => {
+                await amTechTokenContract.mint(aliceAccount.address, amountToMint);
+                await amTechTokenContract.from(aliceAccount).approve(bulletinBoardContract.contractAddress, tokenAmount);
+            });
 
-            const sellerExistsBefore = await bulletinBoardContract.exists(aliceAccount.address);
-            assert.ok(!sellerExistsBefore);
+            it("Should Create an Offer", async () => {
+                const sellerExistsBefore = await bulletinBoardContract.exists(aliceAccount.address);
+                assert.ok(!sellerExistsBefore);
 
-            await bulletinBoardContract.from(aliceAccount).createOffer(tokenAmount, ethAmount);
+                await bulletinBoardContract.from(aliceAccount).createOffer(tokenAmount, ethAmount);
 
-            const expectedSellersCount = 1;
-            const sellersCount = await bulletinBoardContract.getSellersCount();
-            assert(sellersCount.eq(expectedSellersCount));
+                const expectedSellersCount = 1;
+                const sellersCount = await bulletinBoardContract.getSellersCount();
+                assert(sellersCount.eq(expectedSellersCount));
 
-            // sellersCount is the count, -1 to get the index.
-            const sellerAddress = await bulletinBoardContract.allSellers(sellersCount - 1);
-            assert.strictEqual(sellerAddress, aliceAccount.address, "The seller address is not correct");
+                // sellersCount is the count, -1 to get the index.
+                const sellerAddress = await bulletinBoardContract.allSellers(sellersCount - 1);
+                assert.strictEqual(sellerAddress, aliceAccount.address, "The seller address is not correct");
 
-            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
-            // offersCount is the count, -1 to get the index.
-            const offerData = await bulletinBoardContract.OffersPerSeller(aliceAccount.address, offersCount - 1);
+                const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+                // offersCount is the count, -1 to get the index.
+                const offerData = await bulletinBoardContract.offersPerSeller(aliceAccount.address, offersCount - 1);
 
-            assert.strictEqual(offerData.seller, aliceAccount.address, "The seller address is not correct");
-            assert(offerData.tokenAmount.eq(tokenAmount), "Token amount in offer is not correct");
-            assert(offerData.ethAmount.eq(ethAmount), "ether amount in offer is not correct");
+                assert.strictEqual(offerData.seller, aliceAccount.address, "The seller address is not correct");
+                assert(offerData.tokenAmount.eq(tokenAmount), "Token amount in offer is not correct");
+                assert(offerData.ethAmount.eq(ethAmount), "ether amount in offer is not correct");
 
-            const sellerExistsAfter = await bulletinBoardContract.exists(aliceAccount.address);
-            assert.ok(sellerExistsAfter);
+                const sellerExistsAfter = await bulletinBoardContract.exists(aliceAccount.address);
+                assert.ok(sellerExistsAfter);
 
-            const totalTokensForSalePerSeller = await bulletinBoardContract.totalTokensForSalePerSeller(aliceAccount.address);
-            assert(totalTokensForSalePerSeller.eq(tokenAmount));
+                const totalTokensForSalePerSeller = await bulletinBoardContract.totalTokensForSalePerSeller(aliceAccount.address);
+                assert(totalTokensForSalePerSeller.eq(tokenAmount));
 
+                const expectedEvent = "OfferCreated";
+                bulletinBoardContract.contract.on(expectedEvent, (_seller, _tokenAmount, _ethAmount) => {
+
+                    assert.strictEqual(aliceAccount.address, _seller, 'Orderer address is not emited correctly');
+                    assert(_tokenAmount.eq(tokenAmount));
+                    assert(_ethAmount.eq(ethAmount));
+                });
+
+            })
+
+            it("Should Revert if sellet doesn't have enoghth tokens", async () => {
+                await amTechTokenContract.from(bobAccount).approve(bulletinBoardContract.contractAddress, tokenAmount);
+                await assert.revert(bulletinBoardContract.from(bobAccount).createOffer(tokenAmount, ethAmount));
+            })
+
+            it("Should Revert if sellet doesn't approve tokens", async () => {
+                await amTechTokenContract.mint(bobAccount.address, amountToMint);
+                await assert.revert(bulletinBoardContract.from(bobAccount).createOffer(tokenAmount, ethAmount));
+            })
+
+            it("Should Revert if sellet cereates an order with 0 tokens", async () => {
+                await amTechTokenContract.mint(bobAccount.address, amountToMint);
+                await amTechTokenContract.from(bobAccount).approve(bulletinBoardContract.contractAddress, tokenAmount);
+
+                const zeroTokens = 0;
+                await assert.revert(bulletinBoardContract.from(bobAccount).createOffer(zeroTokens, ethAmount));
+            })
+
+            it("Should Revert if sellet cereates an order with 0 ethers", async () => {
+                await amTechTokenContract.mint(bobAccount.address, amountToMint);
+                await amTechTokenContract.from(bobAccount).approve(bulletinBoardContract.contractAddress, tokenAmount);
+
+                const zeroEthers = 0;
+                await assert.revert(bulletinBoardContract.from(bobAccount).createOffer(tokenAmount, zeroEthers));
+            })
         })
 
         it("Should Create multiple offers from multiple sellers", async () => {
@@ -113,7 +158,7 @@ describe("Bulletin Board", function () {
             for (let i = 0; i < sellersCount; i++) {
                 for (let f = 1; f <= offersToCreate; f++) {
                     // offersCount is the count, -1 to get the index.
-                    const offerData = await bulletinBoardContract.OffersPerSeller(expectedSellersAddresses[i], f - 1);
+                    const offerData = await bulletinBoardContract.offersPerSeller(expectedSellersAddresses[i], f - 1);
 
                     assert.strictEqual(offerData.seller, expectedSellersAddresses[i], "The seller address is not correct");
                     assert(offerData.tokenAmount.eq(tokenAmount.mul(f)), "Token amount in offer is not correct");
@@ -121,25 +166,346 @@ describe("Bulletin Board", function () {
                 }
             }
 
-            let res = 0;
-            for (let i = 1; i <= expectedSellersCount; i++) {
-                res += 0.5 * i;
+            let expectedTotalTokens = 0;
+            for (let i = 1; i <= offersToCreate; i++) {
+                expectedTotalTokens += 0.5 * i;
             }
-            console.log(res);
 
             for (let i = 0; i < expectedSellersCount; i++) {
                 const totalTokensForSalePerSeller = await bulletinBoardContract.totalTokensForSalePerSeller(expectedSellersAddresses[i]);
-                console.log(totalTokensForSalePerSeller.toString());
-
+                assert(totalTokensForSalePerSeller.eq(ethers.utils.parseEther(expectedTotalTokens.toString())));
             }
 
         })
     })
 
-    // describe("Cancel an Offer", function () {
-    //     it("Should cancel an offer", async () => {
+    describe("Cancel an Offer", function () {
+
+        beforeEach(async () => {
+            await amTechTokenContract.mint(aliceAccount.address, amountToMint);
+            await amTechTokenContract.from(aliceAccount).approve(bulletinBoardContract.contractAddress, tokenAmount);
+        })
+
+        describe("Cancel One Offer", function () {
+            beforeEach(async () => {
+                await bulletinBoardContract.from(aliceAccount).createOffer(tokenAmount, ethAmount);
+            })
+
+            it("Should cancel an only offer", async () => {
+                const sellersCount = await bulletinBoardContract.getSellersCount();
+                const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+                // - 1 to pass the index of the offer and the seller
+                await bulletinBoardContract.from(aliceAccount).cancelOffer(sellersCount - 1, offersCount - 1);
+
+                const sellersCountAfter = await bulletinBoardContract.getSellersCount();
+                const offersCountAfter = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+                assert(sellersCountAfter.eq(0));
+                assert(offersCountAfter.eq(0));
+
+                const exists = await bulletinBoardContract.exists(aliceAccount.address);
+                assert.ok(!exists);
+
+                const expectedEvent = "OfferCanceled";
+                bulletinBoardContract.contract.on(expectedEvent, (_seller, _orderId) => {
+
+                    assert.strictEqual(aliceAccount.address, _seller, 'Orderer address is not emited correctly');
+                    assert(_orderId.eq(offersCount.sub(1)));
+                });
+            })
+
+            it("Should revert if one tries to cancel an offer with wrong id", async () => {
+                const sellersCount = await bulletinBoardContract.getSellersCount();
+                const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+                await assert.revert(bulletinBoardContract.from(aliceAccount).cancelOffer(sellersCount - 1, offersCount));
+            })
+
+            it("Should revert if one tries to cancel an offer with wrong seller id", async () => {
+                const sellersCount = await bulletinBoardContract.getSellersCount();
+                const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+                await assert.revert(bulletinBoardContract.from(aliceAccount).cancelOffer(sellersCount, offersCount - 1));
+            })
+
+            it("Should revert if one tries to cancel an offer of other seller", async () => {
+                const sellersCount = await bulletinBoardContract.getSellersCount();
+                const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+                await assert.revert(bulletinBoardContract.from(bobAccount).cancelOffer(sellersCount - 1, offersCount - 1));
+            })
+        })
+
+        describe("Cancel Multiple Offers", function () {
+            const offers = 5;
+            const sellers = [bobAccount, charlieAccount, danieAccount];
+
+            beforeEach(async () => {
+                for (let i = 0; i < sellers.length; i++) {
+                    await amTechTokenContract.mint(sellers[i].address, amountToMint);
+                    await amTechTokenContract.from(sellers[i]).approve(bulletinBoardContract.contractAddress, amountToMint);
+                }
+
+                for (let i = 1; i <= sellers.length; i++) {
+                    for (let f = 0; f < offers; f++) {
+                        await bulletinBoardContract.from(sellers[i - 1]).createOffer(tokenAmount.mul(i), ethAmount.mul(i));
+                    }
+                }
+            })
+
+            it("Should cancel random offer", async () => {
+                const sellersCount = await bulletinBoardContract.getSellersCount();
+                assert(sellersCount.eq(sellers.length));
+
+                for (let i = 0; i < sellers.length; i++) {
+                    const offersCount = await bulletinBoardContract.getOffersPerSellerCount(sellers[i].address);
+                    assert(offersCount.eq(offers));
+                }
+
+                let randomSeller = getRandomInt(0, 3);
+                let randomOffer = getRandomInt(0, 5);
+
+                await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomSeller, randomOffer);
+
+                const sellersCountAfter = await bulletinBoardContract.getSellersCount();
+                assert(sellersCountAfter.eq(sellers.length));
+
+                for (let i = 0; i < sellers.length; i++) {
+                    const offersCount = await bulletinBoardContract.getOffersPerSellerCount(sellers[i].address);
+                    if (i == randomSeller) {
+                        assert(offersCount.eq(offers - 1));
+                    } else {
+                        assert(offersCount.eq(offers));
+                    }
+                }
+            })
+
+            it("Should cancel all offers for a random seller from last to first", async () => {
+                let randomSeller = getRandomInt(0, 3);
+
+                for (let i = offers - 1; i >= 0; i--) {
+                    await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomSeller, i);
+                }
+
+                const sellersCount = await bulletinBoardContract.getSellersCount();
+                assert(sellersCount.eq(sellers.length - 1));
+
+                const offersCount = await bulletinBoardContract.getOffersPerSellerCount(sellers[randomSeller].address);
+                assert(offersCount.eq(0))
+            })
+
+            it("Should cancel all offers for a random seller by zero index", async () => {
+                let randomSeller = getRandomInt(0, 3);
+
+                for (let i = offers - 1; i >= 0; i--) {
+                    await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomSeller, 0);
+                }
+
+                const sellersCount = await bulletinBoardContract.getSellersCount();
+                assert(sellersCount.eq(sellers.length - 1));
+
+                const offersCount = await bulletinBoardContract.getOffersPerSellerCount(sellers[randomSeller].address);
+                assert(offersCount.eq(0))
+            })
+
+            it("Should cancel all offers for a random seller by middle index position and the last offer by zero index", async () => {
+                let randomSeller = getRandomInt(0, 3);
+
+                for (let i = offers - 1; i > 0; i--) {
+                    await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomSeller, 1);
+                }
+
+                await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomSeller, 0);
+
+                const sellersCount = await bulletinBoardContract.getSellersCount();
+                assert(sellersCount.eq(sellers.length - 1));
+
+                const offersCount = await bulletinBoardContract.getOffersPerSellerCount(sellers[randomSeller].address);
+                assert(offersCount.eq(0))
+            })
+        })
+    })
+
+    describe("Edit an Offer", function () {
+        beforeEach(async () => {
+            await amTechTokenContract.mint(aliceAccount.address, tokenAmount.mul(2));
+            await amTechTokenContract.from(aliceAccount).approve(bulletinBoardContract.contractAddress, tokenAmount.mul(2));
+            await bulletinBoardContract.from(aliceAccount).createOffer(tokenAmount, ethAmount);
+        })
+        it("Should edit an offer", async () => {
+            const newTokenAmount = tokenAmount.mul(2);
+            const newEthAmounth = ethAmount.mul(2);
 
 
-    //     })
-    // })
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+            // - 1 to get the index
+            await bulletinBoardContract.from(aliceAccount).editOffer(offersCount - 1, newTokenAmount, newEthAmounth);
+
+            const newOffer = await bulletinBoardContract.offersPerSeller(aliceAccount.address, offersCount - 1);
+            assert(newOffer.tokenAmount.eq(newTokenAmount));
+            assert(newOffer.ethAmount.eq(newEthAmounth));
+
+            const expectedEvent = "OfferEdited";
+            bulletinBoardContract.contract.on(expectedEvent, (_seller, _orderId, _tokenAmount, _ethersAmount) => {
+
+                assert.strictEqual(aliceAccount.address, _seller, 'Seller address is not emited correctly');
+
+                assert(_orderId.eq(offersCount - 1));
+                assert(_tokenAmount.eq(newTokenAmount));
+                assert(_ethersAmount.eq(newEthAmounth));
+            });
+        })
+
+        it("Should revert if new tokens are zero", async () => {
+            const newTokenAmount = 0;
+            const newEthAmounth = ethAmount.mul(3);
+
+            await amTechTokenContract.mint(aliceAccount.address, newTokenAmount);
+            await amTechTokenContract.from(aliceAccount).approve(bulletinBoardContract.contractAddress, newTokenAmount);
+
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+            await assert.revert(bulletinBoardContract.from(aliceAccount).editOffer(offersCount - 1, newTokenAmount, newEthAmounth));
+        })
+
+        it("Should revert if new ethers are zero", async () => {
+            const newTokenAmount = tokenAmount.mul(3);
+            const newEthAmounth = 0;
+
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+            await amTechTokenContract.mint(aliceAccount.address, newTokenAmount);
+            await amTechTokenContract.from(aliceAccount).approve(bulletinBoardContract.contractAddress, newTokenAmount);
+
+            await assert.revert(bulletinBoardContract.from(aliceAccount).editOffer(offersCount - 1, newTokenAmount, newEthAmounth));
+        })
+
+        it("Should revert if seller doesn't have enoughth tokens", async () => {
+            const newTokenAmount = tokenAmount.mul(3);
+            const newEthAmounth = ethAmount.mul(3);
+
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+            await amTechTokenContract.from(aliceAccount).approve(bulletinBoardContract.contractAddress, newTokenAmount);
+
+            await assert.revert(bulletinBoardContract.from(aliceAccount).editOffer(offersCount - 1, newTokenAmount, newEthAmounth));
+        })
+
+        it("Should revert if seller doesn't have enoughth tokens approved", async () => {
+            const newTokenAmount = tokenAmount.mul(3);
+            const newEthAmounth = ethAmount.mul(3);
+
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+            await amTechTokenContract.mint(aliceAccount.address, newTokenAmount);
+
+            await assert.revert(bulletinBoardContract.from(aliceAccount).editOffer(offersCount - 1, newTokenAmount, newEthAmounth));
+        })
+
+        it("Should revert offers id is wrong", async () => {
+            const newTokenAmount = tokenAmount.mul(3);
+            const newEthAmounth = ethAmount.mul(3);
+
+            const wrongId = 5;
+
+            await amTechTokenContract.mint(aliceAccount.address, newTokenAmount);
+            await amTechTokenContract.from(aliceAccount).approve(bulletinBoardContract.contractAddress, newTokenAmount);
+
+            await assert.revert(bulletinBoardContract.from(aliceAccount).editOffer(wrongId, newTokenAmount, newEthAmounth));
+        })
+
+        it("Should fail if not offer owner tries to cancel an offer", async () => {
+            const newTokenAmount = tokenAmount.mul(3);
+            const newEthAmounth = ethAmount.mul(3);
+
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+            await amTechTokenContract.mint(bobAccount.address, newTokenAmount);
+            await amTechTokenContract.from(bobAccount).approve(bulletinBoardContract.contractAddress, newTokenAmount);
+
+            await assert.revert(bulletinBoardContract.from(bobAccount).editOffer(offersCount - 1, newTokenAmount, newEthAmounth));
+        })
+    })
+
+    describe("Buy an Offer", function () {
+        beforeEach(async () => {
+            await amTechTokenContract.mint(aliceAccount.address, tokenAmount);
+            await amTechTokenContract.from(aliceAccount).approve(bulletinBoardContract.contractAddress, tokenAmount);
+            await bulletinBoardContract.from(aliceAccount).createOffer(tokenAmount, ethAmount);
+            await whitelistingContract.setWhitelisted([bobAccount.address], true);
+        })
+        it("Should buy an offer", async () => {
+            const aliceEthBalanceBefore = await deployer.provider.getBalance(aliceAccount.address);
+
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+            // seller index i array of sellers = 0
+            const sellerId = 0;
+            await bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, offersCount - 1, {
+                value: ethAmount
+            });
+
+            const aliceEthBalanceAfter = await deployer.provider.getBalance(aliceAccount.address);
+
+            const offersCountAfter = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+            assert(offersCountAfter.eq(0));
+            assert(aliceEthBalanceBefore.eq(aliceEthBalanceAfter.sub(ethAmount)));
+
+            const bobTokens = await amTechTokenContract.balanceOf(bobAccount.address);
+            assert(bobTokens.eq(tokenAmount));
+        })
+
+        it("Should revert if not whitelisted try to buy an offer", async () => {
+            await whitelistingContract.setWhitelisted([bobAccount.address], false);
+
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+            const sellerId = 0;
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, offersCount - 1, {
+                value: ethAmount
+            }));
+        })
+
+        it("Should revert if msg.value < needed ethAmount for the offer", async () => {
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+            const sellerId = 0;
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, offersCount - 1, {
+                value: ethAmount.sub(1)
+            }));
+        })
+
+        it("Should revert if msg.value > needed ethAmount for the offer", async () => {
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+            const sellerId = 0;
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, offersCount - 1, {
+                value: ethAmount.add(1)
+            }));
+        })
+
+        it("Should fail if one tries to buy offer with wrong id", async () => {
+            const wrongId = 3;
+            const sellerId = 0;
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, wrongId, {
+                value: ethAmount
+            }));
+        })
+
+        it("Should fail if one tries to buy offer with wrong seller id", async () => {
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+            const sellerId = 3;
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, offersCount - 1, {
+                value: ethAmount
+            }));
+        })
+
+        it("Should fail if one tries to buy offer with wrong seller address", async () => {
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+            const sellerId = 0;
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(charlieAccount.address, sellerId, offersCount - 1, {
+                value: ethAmount
+            }));
+        })
+    })
 })
