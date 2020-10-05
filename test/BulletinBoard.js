@@ -56,8 +56,8 @@ describe("Bulletin Board", function () {
             });
 
             it("Should Create an Offer", async () => {
-                const sellerExistsBefore = await bulletinBoardContract.exists(aliceAccount.address);
-                assert.ok(!sellerExistsBefore);
+                const sellerInfoBefore = await bulletinBoardContract.infoPerSeller(aliceAccount.address);
+                assert.ok(!sellerInfoBefore.exists);
 
                 await bulletinBoardContract.from(aliceAccount).createOffer(tokenAmount, ethAmount);
 
@@ -77,8 +77,8 @@ describe("Bulletin Board", function () {
                 assert(offerData.tokenAmount.eq(tokenAmount), "Token amount in offer is not correct");
                 assert(offerData.ethAmount.eq(ethAmount), "ether amount in offer is not correct");
 
-                const sellerExistsAfter = await bulletinBoardContract.exists(aliceAccount.address);
-                assert.ok(sellerExistsAfter);
+                const sellerInfoAfter = await bulletinBoardContract.infoPerSeller(aliceAccount.address);
+                assert.ok(sellerInfoAfter.exists);
 
                 const totalTokensForSalePerSeller = await bulletinBoardContract.totalTokensForSalePerSeller(aliceAccount.address);
                 assert(totalTokensForSalePerSeller.eq(tokenAmount));
@@ -192,19 +192,18 @@ describe("Bulletin Board", function () {
             })
 
             it("Should cancel an only offer", async () => {
-                const sellersCount = await bulletinBoardContract.getSellersCount();
                 const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
 
                 // - 1 to pass the index of the offer and the seller
-                await bulletinBoardContract.from(aliceAccount).cancelOffer(sellersCount - 1, offersCount - 1);
+                await bulletinBoardContract.from(aliceAccount).cancelOffer(offersCount - 1);
 
                 const sellersCountAfter = await bulletinBoardContract.getSellersCount();
                 const offersCountAfter = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
                 assert(sellersCountAfter.eq(0));
                 assert(offersCountAfter.eq(0));
 
-                const exists = await bulletinBoardContract.exists(aliceAccount.address);
-                assert.ok(!exists);
+                const sellerInfo = await bulletinBoardContract.infoPerSeller(aliceAccount.address);
+                assert.ok(!sellerInfo.exists);
 
                 const expectedEvent = "OfferCanceled";
                 bulletinBoardContract.contract.on(expectedEvent, (_seller, _offerId) => {
@@ -215,24 +214,15 @@ describe("Bulletin Board", function () {
             })
 
             it("Should revert if one tries to cancel an offer with wrong id", async () => {
-                const sellersCount = await bulletinBoardContract.getSellersCount();
                 const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
 
-                await assert.revert(bulletinBoardContract.from(aliceAccount).cancelOffer(sellersCount - 1, offersCount));
-            })
-
-            it("Should revert if one tries to cancel an offer with wrong seller id", async () => {
-                const sellersCount = await bulletinBoardContract.getSellersCount();
-                const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
-
-                await assert.revert(bulletinBoardContract.from(aliceAccount).cancelOffer(sellersCount, offersCount - 1));
+                await assert.revert(bulletinBoardContract.from(aliceAccount).cancelOffer(offersCount));
             })
 
             it("Should revert if one tries to cancel an offer of other seller", async () => {
-                const sellersCount = await bulletinBoardContract.getSellersCount();
                 const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
 
-                await assert.revert(bulletinBoardContract.from(bobAccount).cancelOffer(sellersCount - 1, offersCount - 1));
+                await assert.revert(bulletinBoardContract.from(bobAccount).cancelOffer(offersCount - 1));
             })
         })
 
@@ -265,7 +255,7 @@ describe("Bulletin Board", function () {
                 let randomSeller = getRandomInt(0, 3);
                 let randomOffer = getRandomInt(0, 5);
 
-                await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomSeller, randomOffer);
+                await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomOffer);
 
                 const sellersCountAfter = await bulletinBoardContract.getSellersCount();
                 assert(sellersCountAfter.eq(sellers.length));
@@ -284,7 +274,7 @@ describe("Bulletin Board", function () {
                 let randomSeller = getRandomInt(0, 3);
 
                 for (let i = offers - 1; i >= 0; i--) {
-                    await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomSeller, i);
+                    await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(i);
                 }
 
                 const sellersCount = await bulletinBoardContract.getSellersCount();
@@ -298,7 +288,7 @@ describe("Bulletin Board", function () {
                 let randomSeller = getRandomInt(0, 3);
 
                 for (let i = offers - 1; i >= 0; i--) {
-                    await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomSeller, 0);
+                    await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(0);
                 }
 
                 const sellersCount = await bulletinBoardContract.getSellersCount();
@@ -312,10 +302,10 @@ describe("Bulletin Board", function () {
                 let randomSeller = getRandomInt(0, 3);
 
                 for (let i = offers - 1; i > 0; i--) {
-                    await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomSeller, 1);
+                    await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(1);
                 }
 
-                await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(randomSeller, 0);
+                await bulletinBoardContract.from(sellers[randomSeller]).cancelOffer(0);
 
                 const sellersCount = await bulletinBoardContract.getSellersCount();
                 assert(sellersCount.eq(sellers.length - 1));
@@ -440,7 +430,7 @@ describe("Bulletin Board", function () {
             const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
             // seller index i array of sellers = 0
             const sellerId = 0;
-            await bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, offersCount - 1, {
+            await bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, offersCount - 1, {
                 value: ethAmount
             });
 
@@ -461,7 +451,7 @@ describe("Bulletin Board", function () {
             const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
 
             const sellerId = 0;
-            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, offersCount - 1, {
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, offersCount - 1, {
                 value: ethAmount
             }));
         })
@@ -470,7 +460,7 @@ describe("Bulletin Board", function () {
             const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
 
             const sellerId = 0;
-            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, offersCount - 1, {
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, offersCount - 1, {
                 value: ethAmount.sub(1)
             }));
         })
@@ -479,7 +469,7 @@ describe("Bulletin Board", function () {
             const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
 
             const sellerId = 0;
-            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, offersCount - 1, {
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, offersCount - 1, {
                 value: ethAmount.add(1)
             }));
         })
@@ -487,15 +477,7 @@ describe("Bulletin Board", function () {
         it("Should fail if one tries to buy offer with wrong id", async () => {
             const wrongId = 3;
             const sellerId = 0;
-            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, wrongId, {
-                value: ethAmount
-            }));
-        })
-
-        it("Should fail if one tries to buy offer with wrong seller id", async () => {
-            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
-            const sellerId = 3;
-            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, sellerId, offersCount - 1, {
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, wrongId, {
                 value: ethAmount
             }));
         })
@@ -503,7 +485,7 @@ describe("Bulletin Board", function () {
         it("Should fail if one tries to buy offer with wrong seller address", async () => {
             const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
             const sellerId = 0;
-            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(charlieAccount.address, sellerId, offersCount - 1, {
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(charlieAccount.address, offersCount - 1, {
                 value: ethAmount
             }));
         })

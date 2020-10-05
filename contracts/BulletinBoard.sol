@@ -9,7 +9,7 @@ import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 /**
  * @title BulletinBoard
  * @dev This contract allows AmTech token holders to transfer their tokens
- * between other whitelisted platform users for a specific amount of ethers
+ * with other whitelisted platform users for a specific amount of ethers
  */
 contract BulletinBoard {
     using SafeMath for uint256;
@@ -18,20 +18,13 @@ contract BulletinBoard {
 
     address[] public allSellers;
     mapping(address => Offer[]) public offersPerSeller;
-    mapping(address => bool) public exists;
+    mapping(address => SellerInfo) public infoPerSeller;
     mapping(address => uint256) public totalTokensForSalePerSeller;
 
-    /**
-     * @dev Passes the address and sets the instance of the AmTech Token
-     *
-     * AmTech Token can only be set once - during
-     * construction.
-     */
-    constructor(address _amTechToken) public {
-        require(_amTechToken != address(0));
-        amTechToken = IERC20(_amTechToken);
+    struct SellerInfo {
+        bool exists;
+        uint256 allSellersIndex;
     }
-
     struct Offer {
         address seller;
         uint256 tokenAmount;
@@ -46,7 +39,7 @@ contract BulletinBoard {
 
     event OfferEdited(
         address indexed seller,
-        uint256 offerId,
+        uint256 offerIndex,
         uint256 tokensForSale,
         uint256 priceForTokens
     );
@@ -54,10 +47,21 @@ contract BulletinBoard {
     event OfferBuyed(
         address indexed seller,
         address indexed buyer,
-        uint256 offerId
+        uint256 offerIndex
     );
 
-    event OfferCanceled(address indexed seller, uint256 offerId);
+    event OfferCanceled(address indexed seller, uint256 offerIndex);
+
+    /**
+     * @dev Passes the address and sets the instance of the AmTech Token
+     *
+     * AmTech Token can only be set once - during
+     * construction.
+     */
+    constructor(address _amTechToken) public {
+        require(_amTechToken != address(0));
+        amTechToken = IERC20(_amTechToken);
+    }
 
     /**
      * @dev createOffer allows msg.sender to create an offer
@@ -76,7 +80,7 @@ contract BulletinBoard {
         uint256 totalTokensForSale = totalTokensForSalePerSeller[msg.sender]
             .add(_tokenAmount);
         require(hasAllowance(msg.sender, totalTokensForSale));
-        require(hasEnoughthTokens(msg.sender, totalTokensForSale));
+        require(hasEnoughTokens(msg.sender, totalTokensForSale));
 
         totalTokensForSalePerSeller[msg.sender] = totalTokensForSale;
 
@@ -88,8 +92,11 @@ contract BulletinBoard {
             })
         );
 
-        if (!exists[msg.sender]) {
-            exists[msg.sender] = true;
+        if (!infoPerSeller[msg.sender].exists) {
+            infoPerSeller[msg.sender] = SellerInfo({
+                exists: true,
+                allSellersIndex: allSellers.length
+            });
             allSellers.push(msg.sender);
         }
 
@@ -103,14 +110,15 @@ contract BulletinBoard {
      *     * Requirements:
      * msg.sender to be the offer owner of a specific offer
      *
-     * Emits: OfferCanceled event with seller address and offer id
+     * Emits: OfferCanceled event with seller address and offer Index
      */
-    function cancelOffer(uint256 _sellerId, uint256 _offerId)
-        external
-        returns (bool)
-    {
-        removeOffer(msg.sender, _offerId, _sellerId);
-        emit OfferCanceled(msg.sender, _offerId);
+    function cancelOffer(uint256 _offerIndex) external returns (bool) {
+        removeOffer(
+            msg.sender,
+            _offerIndex,
+            infoPerSeller[msg.sender].allSellersIndex
+        );
+        emit OfferCanceled(msg.sender, _offerIndex);
         return true;
     }
 
@@ -120,10 +128,10 @@ contract BulletinBoard {
      *     * Requirements:
      * this contract should have the needed allowance for the future distribution of the tokens for sale
      *
-     * Emits: OfferEdited event with seller address, offer id, new amount tokens for sale and new price for tokens in eth
+     * Emits: OfferEdited event with seller address, offer Index, new amount tokens for sale and new price for tokens in eth
      */
     function editOffer(
-        uint256 _offerId,
+        uint256 _offerIndex,
         uint256 _tokenAmount,
         uint256 _ethAmount
     ) external returns (bool) {
@@ -131,21 +139,21 @@ contract BulletinBoard {
         require(_ethAmount > 0);
 
         uint256 totalTokensForSale = totalTokensForSalePerSeller[msg.sender]
-            .sub(offersPerSeller[msg.sender][_offerId].tokenAmount)
+            .sub(offersPerSeller[msg.sender][_offerIndex].tokenAmount)
             .add(_tokenAmount);
 
         require(hasAllowance(msg.sender, totalTokensForSale));
-        require(hasEnoughthTokens(msg.sender, totalTokensForSale));
+        require(hasEnoughTokens(msg.sender, totalTokensForSale));
 
         totalTokensForSalePerSeller[msg.sender] = totalTokensForSale;
 
-        offersPerSeller[msg.sender][_offerId] = Offer({
+        offersPerSeller[msg.sender][_offerIndex] = Offer({
             seller: msg.sender,
             tokenAmount: _tokenAmount,
             ethAmount: _ethAmount
         });
 
-        emit OfferEdited(msg.sender, _offerId, _tokenAmount, _ethAmount);
+        emit OfferEdited(msg.sender, _offerIndex, _tokenAmount, _ethAmount);
 
         return true;
     }
@@ -159,20 +167,24 @@ contract BulletinBoard {
      *
      * Emits: OfferBuyed event with orderer, buyer and offer index
      */
-    function buyOffer(
-        address payable _seller,
-        uint256 _sellerId,
-        uint256 _offerId
-    ) public payable returns (bool) {
-        Offer memory currentOffer = offersPerSeller[_seller][_offerId];
+    function buyOffer(address payable _seller, uint256 _offerIndex)
+        public
+        payable
+        returns (bool)
+    {
+        Offer memory currentOffer = offersPerSeller[_seller][_offerIndex];
         require(msg.value == currentOffer.ethAmount);
 
         amTechToken.transferFrom(_seller, msg.sender, currentOffer.tokenAmount);
         _seller.transfer(currentOffer.ethAmount);
 
-        removeOffer(_seller, _offerId, _sellerId);
+        removeOffer(
+            _seller,
+            _offerIndex,
+            infoPerSeller[_seller].allSellersIndex
+        );
 
-        emit OfferBuyed(_seller, msg.sender, _offerId);
+        emit OfferBuyed(_seller, msg.sender, _offerIndex);
 
         return true;
     }
@@ -194,40 +206,43 @@ contract BulletinBoard {
      *     * Requirements:
      * msg.sender to be the offer owner of a specific offer
      *
-     * Emits: OfferCanceled event with seller address and offer id
+     * Emits: OfferCanceled event with seller address and offer Index
      */
     function removeOffer(
         address _offerOwner,
-        uint256 _offerId,
-        uint256 _sellerId
-    ) private returns (bool) {
-        require(allSellers[_sellerId] == _offerOwner);
+        uint256 _offerIndex,
+        uint256 _sellerIndex
+    ) internal returns (bool) {
+        require(allSellers[_sellerIndex] == _offerOwner);
 
-        if (getOffersPerSellerCount(_offerOwner) - 1 == _offerId) {
+        if (getOffersPerSellerCount(_offerOwner) - 1 == _offerIndex) {
             offersPerSeller[_offerOwner].pop();
 
             if (getOffersPerSellerCount(_offerOwner) == 0) {
-                exists[_offerOwner] = false;
-                rearrangeAllSellers(_sellerId);
+                delete infoPerSeller[_offerOwner];
+                rearrangeAllSellers(_sellerIndex);
             }
-            return true;
+        } else {
+            offersPerSeller[_offerOwner][_offerIndex] = offersPerSeller[msg
+                .sender][getOffersPerSellerCount(_offerOwner) - 1];
+
+            offersPerSeller[_offerOwner].pop();
         }
-
-        offersPerSeller[_offerOwner][_offerId] = offersPerSeller[msg
-            .sender][getOffersPerSellerCount(_offerOwner) - 1];
-
-        offersPerSeller[_offerOwner].pop();
         return true;
     }
 
     /**
      * @dev rearrangeAllSellers an internal function to rearrange allSellers array if needed
      */
-    function rearrangeAllSellers(uint256 _sellerId) private returns (bool) {
-        if (getSellersCount() - 1 == _sellerId) {
+    function rearrangeAllSellers(uint256 _sellerIndex) private returns (bool) {
+        if (getSellersCount() - 1 == _sellerIndex) {
             allSellers.pop();
         } else {
-            allSellers[_sellerId] = allSellers[getSellersCount() - 1];
+            allSellers[_sellerIndex] = allSellers[getSellersCount() - 1];
+
+            infoPerSeller[allSellers[_sellerIndex]]
+                .allSellersIndex = _sellerIndex;
+
             allSellers.pop();
         }
         return true;
@@ -248,9 +263,9 @@ contract BulletinBoard {
     }
 
     /**
-     * @dev hasEnoughthTokens validations for sellers balance
+     * @dev hasEnoughTokens validations for sellers balance
      */
-    function hasEnoughthTokens(address _seller, uint256 _amount)
+    function hasEnoughTokens(address _seller, uint256 _amount)
         private
         view
         returns (bool)
