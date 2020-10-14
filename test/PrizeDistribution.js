@@ -11,7 +11,7 @@ describe("Example", function () {
     let prizeDistribution;
     let mockRandomGenerator;
 
-    const USERS = 8;
+    const USERS = 50;
 
     const tokenContract = accounts[0].signer.address;
     let token;
@@ -27,20 +27,28 @@ describe("Example", function () {
 
         await prizeDistribution.setTokenAddress(tokenContract);
 
-        // for (let i = 0; i < USERS; i++) {
-        //     const wallet = new ethers.Wallet.createRandom();
-        //     const rand = (Math.random() * 10 ** 18) * 123;
-        //     // console.log(wallet.address, rand);
+        for (let i = 0; i < USERS; i++) {
+            const wallet = new ethers.Wallet.createRandom();
+            const rand = (Math.random() * 10 ** 18) * 123;
+            console.log(wallet.address, rand);
 
-        //     let randBigNum = ethers.BigNumber.from(Math.floor(rand).toString());
-        //     await prizeDistribution.setUserWeight(wallet.address, randBigNum);
-        // }
-        // console.log('END', USERS);
+            let randBigNum = ethers.BigNumber.from(Math.floor(rand).toString());
+            await prizeDistribution.setUserWeight(wallet.address, randBigNum);
+        }
+        console.log('END', USERS);
+        await prizeDistribution.setTrustedRandom(5);
     });
 
     it.only("should set token address from owner", async () => {
-        await token.mint(accounts[1].signer.address, "325134534253453425")
-        await token.from(accounts[1].signer).burn("325134534253453425")
+        
+        const rand = await prizeDistribution.currentRandomNumber();
+        console.log(rand.toString());
+
+        let res = await prizeDistribution.findWinner(rand);
+        console.log(res);
+        
+        // await token.mint(accounts[1].signer.address, "325134534253453425")
+        // await token.from(accounts[1].signer).burn("325134534253453425")
         // const wallet = new ethers.Wallet.createRandom();
         // const rand = Math.random() * 10 ** 18 * 123;
         // // console.log(wallet.address, rand);

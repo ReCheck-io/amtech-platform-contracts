@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.6.6;
 
 import "./interfaces/IRandomGenerator.sol";
 import "./interfaces/IPrizeDistribution.sol";
@@ -16,6 +16,8 @@ import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 contract PrizeDistribution is Ownable, IPrizeDistribution {
     using SafeMath for uint256;
 
+    uint256 public currentRandomNumber;
+
     IRandomGenerator public randomGenerator;
     address public tokenAddress;
 
@@ -25,7 +27,8 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
     mapping(address => UserStatus) indexToHolderAddress;
 
     uint256 public currentRound;
-    mapping(uint256 => Winner[]) public roundsAndWinningPositions;
+
+    // mapping(uint256 => Winner[]) public roundsAndWinningPositions;
 
     mapping(address => uint256) public winnn;
     // prizes[] public allPrizes;
@@ -35,10 +38,10 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         bool isActive;
     }
 
-    struct Winner {
-        address winner;
-        uint256 position;
-    }
+    // struct Winner {
+    //     address winner;
+    //     uint256 position;
+    // }
 
     modifier onlyTokenContract() {
         require(msg.sender == tokenAddress);
@@ -56,55 +59,24 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
     function setWinnn(address[] memory _address, uint256[] memory amount)
         public
     {
-        require(msg.sender != address(0));
         require(msg.sender == tokenAddress);
-        
+
         for (uint256 i = 0; i < _address.length; i++) {
             winnn[_address[i]] = amount[i];
         }
     }
 
-    // TODO: should set max number of winners per draw
-    /**
-     * @dev Draw _n number of winners based on verifiable random number, seed word and user weights and
-     * add them to a list of winners per round
-     *
-     * Requirements:
-     * - Amtech token must be paused
-     *
-     * Can be called from any user
-     */
-    function drawWinners(uint256 _n, uint256 userSeed) public returns (bool) {
-        require(msg.sender != address(0));
-        require(msg.sender == tokenAddress);
-        // uint256 winningPosition;
-        uint256 random = randomGenerator.rollTheDice(userSeed);
-        // for (uint256 i = 0; i < _n; i++) {
-        //     winningPosition =
-        //         tokenHolderWeights[random.mul(i) % tokenHolderWeights.length]
-        //             .mul(random) %
-        //         totalSupply;
-
-        //     address winner = findWinner(winningPosition);
-
-        //     Winner memory currentWinner = Winner(winner, winningPosition);
-        //     roundsAndWinningPositions[currentRound].push(currentWinner);
-        // }
-        return true;
+    function setTrustedRandom(uint256 userSeed) public {
+        currentRandomNumber = randomGenerator.rollTheDice(userSeed);
     }
 
-    // TODO: is it possible for one user to win multiple prices
-    /**
-     * @dev Uses a weighted random algorithm to find the winner.
-     * Returns the winning address
-     *
-     */
     function findWinner(uint256 random) public view returns (address) {
+        uint256 winnerRange = random % totalSupply;
         uint256 drawedBalances = 0;
         for (uint256 i = 0; i < tokenHolders.length; i++) {
             drawedBalances = drawedBalances.add(tokenHolderWeights[i]);
 
-            if (drawedBalances > random) {
+            if (drawedBalances > winnerRange) {
                 return tokenHolders[i];
             }
         }
@@ -153,20 +125,20 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         );
     }
 
-    function getWinnerPerRound(uint256 round, uint256 position)
-        public
-        view
-        returns (address, uint256)
-    {
-        return (
-            roundsAndWinningPositions[round][position].winner,
-            roundsAndWinningPositions[round][position].position
-        );
-    }
+    // function getWinnerPerRound(uint256 round, uint256 position)
+    //     public
+    //     view
+    //     returns (address, uint256)
+    // {
+    //     return (
+    //         roundsAndWinningPositions[round][position].winner,
+    //         roundsAndWinningPositions[round][position].position
+    //     );
+    // }
 
-    function getRoundWinnersCount(uint256 round) public view returns (uint256) {
-        return (roundsAndWinningPositions[round].length);
-    }
+    // function getRoundWinnersCount(uint256 round) public view returns (uint256) {
+    //     return (roundsAndWinningPositions[round].length);
+    // }
 
     function getUserCount() public view returns (uint256) {
         return tokenHolders.length;

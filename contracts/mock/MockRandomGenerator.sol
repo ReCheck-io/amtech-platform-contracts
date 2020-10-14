@@ -3,7 +3,6 @@ pragma solidity ^0.6.6;
 import "../interfaces/IRandomGenerator.sol";
 import "../../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 
-
 contract MockRandomGenerator is IRandomGenerator {
     using SafeMath for uint256;
 
@@ -12,6 +11,6 @@ contract MockRandomGenerator is IRandomGenerator {
         override
         returns (uint256)
     {
-        return userProvidedSeed.mul(block.timestamp);
+        return userProvidedSeed.mul(block.timestamp).mul(10000000000000);
     }
 }
