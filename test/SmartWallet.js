@@ -15,7 +15,9 @@ const SignerStatuses = {
     Owner: 2
 }
 
-describe('Smart Wallet Tests', () => {
+describe('Smart Wallet Tests', function () {
+    this.timeout(10000);
+
     let relayerAccount = accounts[0];
     let aliceAccount = accounts[1];
     let bobAccount = accounts[2];
