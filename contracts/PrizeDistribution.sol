@@ -16,21 +16,21 @@ import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 contract PrizeDistribution is Ownable, IPrizeDistribution {
     using SafeMath for uint256;
 
+    IRandomGenerator public randomGenerator;
     uint256 public currentRandomNumber;
 
-    IRandomGenerator public randomGenerator;
     address public tokenAddress;
-
     uint256 public totalSupply;
     address[] public tokenHolders;
     uint256[] public tokenHolderWeights;
+
     mapping(address => UserStatus) indexToHolderAddress;
 
     uint256 public currentRound;
 
     // mapping(uint256 => Winner[]) public roundsAndWinningPositions;
 
-    mapping(address => uint256) public winnn;
+    mapping(address => uint256) public winnners;
     // prizes[] public allPrizes;
 
     struct UserStatus {
@@ -56,13 +56,12 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         randomGenerator = IRandomGenerator(_randomGenerator);
     }
 
-    function setWinnn(address[] memory _address, uint256[] memory amount)
+    function setWinnners(address[] memory _address, uint256[] memory amount)
         public
+        onlyOwner
     {
-        require(msg.sender == tokenAddress);
-
         for (uint256 i = 0; i < _address.length; i++) {
-            winnn[_address[i]] = amount[i];
+            winnners[_address[i]] = amount[i];
         }
     }
 
@@ -113,33 +112,7 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         return true;
     }
 
-    function getUserInfo(address tokenHolder)
-        public
-        view
-        returns (uint256 index, bool isActive)
-    {
-        require(indexToHolderAddress[tokenHolder].isActive);
-        return (
-            indexToHolderAddress[tokenHolder].index,
-            indexToHolderAddress[tokenHolder].isActive
-        );
-    }
-
-    // function getWinnerPerRound(uint256 round, uint256 position)
-    //     public
-    //     view
-    //     returns (address, uint256)
-    // {
-    //     return (
-    //         roundsAndWinningPositions[round][position].winner,
-    //         roundsAndWinningPositions[round][position].position
-    //     );
-    // }
-
-    // function getRoundWinnersCount(uint256 round) public view returns (uint256) {
-    //     return (roundsAndWinningPositions[round].length);
-    // }
-
+    
     function getUserCount() public view returns (uint256) {
         return tokenHolders.length;
     }
