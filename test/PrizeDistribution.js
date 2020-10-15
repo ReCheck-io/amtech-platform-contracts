@@ -4,7 +4,7 @@ const PrizeDistribution = require("../build/PrizeDistribution.json");
 const MockRandomGenerator = require("../build/MockRandomGenerator.json");
 const Token = require("../build/AmTechToken.json");
 
-describe("Example", function () {
+describe.skip("Example", function () {
     this.timeout(100000);
 
     let deployer;
@@ -39,7 +39,7 @@ describe("Example", function () {
         await prizeDistribution.setTrustedRandom(5);
     });
 
-    it.only("should set token address from owner", async () => {
+    it("should set token address from owner", async () => {
         
         const rand = await prizeDistribution.currentRandomNumber();
         console.log(rand.toString());
@@ -110,22 +110,4 @@ describe("Example", function () {
     //     assert.equal(users, USERS);
     // })
 
-    // it(`should add ${USERS} accounts`, async () => {
-    //     let users = await prizeDistribution.getUserCount();
-    //     assert.equal(users, USERS);
-    // })
-
-    // it.only('should get winners', async () => {
-    //     const winners = 10;
-    //     const seed = 123
-    //     await prizeDistribution.drawWinners(winners, seed);
-    //     let roundWinners = await prizeDistribution.getRoundWinnersCount(0);
-    //     assert.equal(winners, roundWinners.toString());
-
-    //     for (let i = 0; i < roundWinners; i++) {
-    //         let winner = await prizeDistribution.getWinnerPerRound(0, i);
-    //         console.log(winner[0], winner[1].toString());
-
-    //     }
-    // })
 });
