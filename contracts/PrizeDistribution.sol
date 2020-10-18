@@ -96,7 +96,7 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
     }
 
     function createRewards(uint256 _changeIt) public onlyDistributionAdmin {
-
+// TODO Create rewards lists - how many rewards by which type for which round we would have
     }
 
     function findWinner(uint256 random) public view returns (address) {
