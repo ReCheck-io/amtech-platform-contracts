@@ -44,7 +44,7 @@ contract BulletinBoard {
         uint256 priceForTokens
     );
 
-    event OfferBuyed(
+    event OfferBought(
         address indexed seller,
         address indexed buyer,
         uint256 offerIndex
@@ -128,7 +128,8 @@ contract BulletinBoard {
      *     * Requirements:
      * this contract should have the needed allowance for the future distribution of the tokens for sale
      *
-     * Emits: OfferEdited event with seller address, offer Index, new amount tokens for sale and new price for tokens in eth
+     * Emits: OfferEdited event with seller address, offer Index, new amount tokens for sale and new price for tokens
+     * in eth
      */
     function editOffer(
         uint256 _offerIndex,
@@ -165,13 +166,9 @@ contract BulletinBoard {
      * msg.sender to be whitelisted
      * msg.value to be equal to the price for the tokens
      *
-     * Emits: OfferBuyed event with orderer, buyer and offer index
+     * Emits: OfferBought event with orderer, buyer and offer index
      */
-    function buyOffer(address payable _seller, uint256 _offerIndex)
-        public
-        payable
-        returns (bool)
-    {
+    function buyOffer(address payable _seller, uint256 _offerIndex) public payable returns (bool) {
         Offer memory currentOffer = offersPerSeller[_seller][_offerIndex];
         require(msg.value == currentOffer.ethAmount);
 
@@ -184,7 +181,7 @@ contract BulletinBoard {
             infoPerSeller[_seller].allSellersIndex
         );
 
-        emit OfferBuyed(_seller, msg.sender, _offerIndex);
+        emit OfferBought(_seller, msg.sender, _offerIndex);
 
         return true;
     }
