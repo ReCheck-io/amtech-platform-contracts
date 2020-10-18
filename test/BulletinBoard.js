@@ -4,6 +4,8 @@ const etherlime = require("etherlime-lib");
 const Whitelisting = require("../build/Whitelisting.json");
 const AmtechToken = require("../build/AmTechToken.json");
 const BulletinBoard = require("../build/BulletinBoard.json");
+const MockRandomGenerator = require("../build/MockRandomGenerator.json");
+const PrizeDistribution = require("../build/PrizeDistribution.json");
 
 const getRandomInt = function (min, max) {
     min = Math.ceil(min);
@@ -17,6 +19,8 @@ describe("Bulletin Board", function () {
     let whitelistingContract;
     let amTechTokenContract;
     let bulletinBoardContract;
+    let prizeDistributionContract;
+    let mockRandomGeneratorContract;
 
     const tokenName = "AmTech";
     const tokenSymbol = "AMT";
@@ -34,7 +38,11 @@ describe("Bulletin Board", function () {
     beforeEach(async () => {
         deployer = new etherlime.EtherlimeGanacheDeployer();
         whitelistingContract = await deployer.deploy(Whitelisting);
-        amTechTokenContract = await deployer.deploy(AmtechToken, {}, tokenName, tokenSymbol, whitelistingContract.contractAddress);
+        mockRandomGeneratorContract = await deployer.deploy(MockRandomGenerator);
+        prizeDistributionContract = await deployer.deploy(PrizeDistribution, {},
+            mockRandomGeneratorContract.contractAddress);
+        amTechTokenContract = await deployer.deploy(AmtechToken, {},
+            tokenName, tokenSymbol, whitelistingContract.contractAddress, prizeDistributionContract.contractAddress);
         bulletinBoardContract = await deployer.deploy(BulletinBoard, {}, amTechTokenContract.contractAddress);
     });
 

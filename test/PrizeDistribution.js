@@ -4,7 +4,7 @@ const PrizeDistribution = require("../build/PrizeDistribution.json");
 const MockRandomGenerator = require("../build/MockRandomGenerator.json");
 const Token = require("../build/AmTechToken.json");
 
-describe.skip("Example", function () {
+describe.skip("Prize Distribution", function () {
     this.timeout(100000);
 
     let deployer;
