@@ -3,8 +3,112 @@ const ethers = require("ethers");
 const PrizeDistribution = require("../build/PrizeDistribution.json");
 const MockRandomGenerator = require("../build/MockRandomGenerator.json");
 const Token = require("../build/AmTechToken.json");
+const Whitelisting = require("../build/Whitelisting.json");
 
-describe.skip("Prize Distribution", function () {
+describe.only("Prize Distribution", function () {
+    // this.timeout(100000);
+
+    let deployer;
+    let prizeDistribution;
+    let mockRandomGenerator;
+    let whitelisting;
+    let amtechToken;
+
+    describe("Contract Management", function () {
+
+        beforeEach(async () => {
+            deployer = new etherlime.EtherlimeGanacheDeployer();
+            mockRandomGenerator = await deployer.deploy(MockRandomGenerator);
+            prizeDistribution = await deployer.deploy(PrizeDistribution, {}, mockRandomGenerator.contractAddress);
+            whitelisting = await deployer.deploy(Whitelisting, {});
+
+            amtechToken = await deployer.deploy(Token, {},
+                "am", "amt", whitelisting.contractAddress, prizeDistribution.contractAddress);
+        });
+
+        it("should have all constructor parameters set correctly", async () => {
+            let recordedRandomGenerator = await prizeDistribution.randomGenerator();
+
+            assert.strictEqual(mockRandomGenerator.contractAddress, recordedRandomGenerator);
+        });
+
+
+        it("should set token address from owner", async () => {
+            await prizeDistribution.setTokenAddress(amtechToken.contractAddress);
+            let tokenAddress = await prizeDistribution.tokenAddress();
+
+            assert.equal(tokenAddress, amtechToken.contractAddress);
+        });
+
+        it("should revert if not owner tries to set token address", async () => {
+            const notOwner = accounts[1].signer.address;
+            await assert.revert(
+                prizeDistribution.from(notOwner).setTokenAddress(amtechToken.contractAddress)
+            );
+        });
+
+        it("should revert if one try to change token address", async () => {
+            await prizeDistribution.setTokenAddress(amtechToken.contractAddress);
+
+            let tokenAddress = await prizeDistribution.tokenAddress();
+            await assert.equal(tokenAddress, amtechToken.contractAddress);
+
+            await assert.revert(prizeDistribution.setTokenAddress(amtechToken.contractAddress));
+        });
+
+        it("should set random generator address", async () => {
+            let newRandomGenerator = accounts[9].signer.address;
+
+            await prizeDistribution.setRandomGenerator(newRandomGenerator);
+            let randomGeneratorAddress = await prizeDistribution.randomGenerator();
+            assert.equal(randomGeneratorAddress, newRandomGenerator);
+        });
+
+        it("should revert if not owner tries to set random generator", async () => {
+            const notOwner = accounts[1].signer.address;
+            let newRandomGenerator = accounts[9].signer.address;
+
+            await assert.revert(
+                prizeDistribution.from(notOwner).setRandomGenerator(newRandomGenerator)
+            );
+        });
+
+        it("should set distribution admin address", async () => {
+            const newDistributionAdminAddress = accounts[9].signer.address;
+
+            await prizeDistribution.setDistributionAdmin(newDistributionAdminAddress, true);
+            let isAdmin = await prizeDistribution.distributionAdmins(newDistributionAdminAddress);
+            assert.ok(isAdmin);
+        });
+
+        it("should unset distribution admin address", async () => {
+            const newDistributionAdminAddress = accounts[9].signer.address;
+
+            await prizeDistribution.setDistributionAdmin(newDistributionAdminAddress, true);
+            await prizeDistribution.setDistributionAdmin(newDistributionAdminAddress, false);
+            let isAdmin = await prizeDistribution.distributionAdmins(newDistributionAdminAddress);
+            assert.notOk(isAdmin);
+        });
+
+        it("should revert when non-owner try to change distribution admin address", async () => {
+            const notOwner = accounts[1].signer.address;
+            const newDistributionAdminAddress = accounts[9].signer.address;
+
+            await assert.revert(
+                prizeDistribution.from(notOwner).setDistributionAdmin(newDistributionAdminAddress, true)
+            );
+        });
+
+    });
+    // it(`should add ${USERS} accounts`, async () => {
+    //     let users = await prizeDistribution.getUserCount();
+    //     assert.equal(users, USERS);
+    // })
+
+});
+
+
+describe.skip("Prize Distribution old", function () {
     this.timeout(100000);
 
     let deployer;

@@ -37,12 +37,14 @@ describe("Bulletin Board", function () {
 
     beforeEach(async () => {
         deployer = new etherlime.EtherlimeGanacheDeployer();
+
         whitelistingContract = await deployer.deploy(Whitelisting);
         mockRandomGeneratorContract = await deployer.deploy(MockRandomGenerator);
         prizeDistributionContract = await deployer.deploy(PrizeDistribution, {},
             mockRandomGeneratorContract.contractAddress);
         amTechTokenContract = await deployer.deploy(AmtechToken, {},
             tokenName, tokenSymbol, whitelistingContract.contractAddress, prizeDistributionContract.contractAddress);
+        await prizeDistributionContract.setTokenAddress(amTechTokenContract.contractAddress);
         bulletinBoardContract = await deployer.deploy(BulletinBoard, {}, amTechTokenContract.contractAddress);
     });
 

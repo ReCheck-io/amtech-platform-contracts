@@ -36,7 +36,6 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
         _;
     }
 
-    // TODO: do we have to hard stop minting after period
     /**
      * @dev Grants `DEFAULT_ADMIN_ROLE`, `MINTER_ROLE` and `PAUSER_ROLE` to the
      * account that deploys the contract.
@@ -72,7 +71,7 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
             hasRole(MINTER_ROLE, _msgSender()),
             "ERC20PresetMinterPauser: must have minter role to mint"
         );
-        // prizeDistribution.setUserWeight(to, amount);
+         prizeDistribution.setUserWeight(to, amount);
         _mint(to, amount);
     }
 

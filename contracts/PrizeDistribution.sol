@@ -25,12 +25,13 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
     uint256[] public tokenHolderWeights;
 
     mapping(address => UserStatus) indexToHolderAddress;
+    mapping(address => bool) public distributionAdmins;
 
     uint256 public currentRound;
 
     // mapping(uint256 => Winner[]) public roundsAndWinningPositions;
 
-    mapping(address => uint256) public winnners;
+    mapping(address => uint256) public winners;
     // prizes[] public allPrizes;
 
     struct UserStatus {
@@ -48,6 +49,11 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         _;
     }
 
+    modifier onlyDistributionAdmin() {
+        require(distributionAdmins[msg.sender], "The caller is not distribution admin");
+        _;
+    }
+
     /**
      * @dev Set random number generator contract
      *
@@ -56,17 +62,41 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         randomGenerator = IRandomGenerator(_randomGenerator);
     }
 
-    function setWinnners(address[] memory _address, uint256[] memory amount)
+    function setDistributionAdmin(address _distributionAdmin, bool isDistributionAdmin) public onlyOwner {
+        require(_distributionAdmin != address(0));
+        distributionAdmins[_distributionAdmin] = isDistributionAdmin;
+    }
+
+    function setRandomGenerator(address _randomGenerator) public onlyOwner {
+        require(_randomGenerator != address(0));
+        randomGenerator = IRandomGenerator(_randomGenerator);
+    }
+
+    function setTokenAddress(address _tokenAddress) public onlyOwner {
+        require(tokenAddress == address(0));
+        require(_tokenAddress != address(0));
+        tokenAddress = _tokenAddress;
+    }
+
+    function getUserCount() public view returns (uint256) {
+        return tokenHolders.length;
+    }
+
+    function setWinners(address[] memory _address, uint256[] memory amount)
         public
         onlyOwner
     {
         for (uint256 i = 0; i < _address.length; i++) {
-            winnners[_address[i]] = amount[i];
+            winners[_address[i]] = amount[i];
         }
     }
 
     function setTrustedRandom(uint256 userSeed) public {
         currentRandomNumber = randomGenerator.rollTheDice(userSeed);
+    }
+
+    function createRewards(uint256 _changeIt) public onlyDistributionAdmin {
+
     }
 
     function findWinner(uint256 random) public view returns (address) {
@@ -79,6 +109,8 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
                 return tokenHolders[i];
             }
         }
+
+        return address(0);
     }
 
     // TODO: token contract should be able to decrease user weight!
@@ -112,23 +144,7 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         return true;
     }
 
-    
-    function getUserCount() public view returns (uint256) {
-        return tokenHolders.length;
-    }
-
-    function setTokenAddress(address _tokenAddress) public onlyOwner {
-        require(tokenAddress == address(0));
-        require(_tokenAddress != address(0));
-        tokenAddress = _tokenAddress;
-    }
-
     function closeRound() public onlyTokenContract {
         currentRound++;
-    }
-
-    function setRandomGenerator(address _randomGenerator) public onlyOwner {
-        require(_randomGenerator != address(0));
-        randomGenerator = IRandomGenerator(_randomGenerator);
     }
 }
