@@ -18,8 +18,8 @@ describe("Bulletin Board", function () {
     let amTechTokenContract;
     let bulletinBoardContract;
 
-    const tonekName = "AmTech";
-    const tonekSymbol = "AMT";
+    const tokenName = "AmTech";
+    const tokenSymbol = "AMT";
 
     const aliceAccount = accounts[1].signer;
     const bobAccount = accounts[2].signer;
@@ -34,7 +34,7 @@ describe("Bulletin Board", function () {
     beforeEach(async () => {
         deployer = new etherlime.EtherlimeGanacheDeployer();
         whitelistingContract = await deployer.deploy(Whitelisting);
-        amTechTokenContract = await deployer.deploy(AmtechToken, {}, tonekName, tonekSymbol, whitelistingContract.contractAddress);
+        amTechTokenContract = await deployer.deploy(AmtechToken, {}, tokenName, tokenSymbol, whitelistingContract.contractAddress);
         bulletinBoardContract = await deployer.deploy(BulletinBoard, {}, amTechTokenContract.contractAddress);
     });
 
@@ -262,7 +262,7 @@ describe("Bulletin Board", function () {
 
                 for (let i = 0; i < sellers.length; i++) {
                     const offersCount = await bulletinBoardContract.getOffersPerSellerCount(sellers[i].address);
-                    if (i == randomSeller) {
+                    if (i === randomSeller) {
                         assert(offersCount.eq(offers - 1));
                     } else {
                         assert(offersCount.eq(offers));
@@ -429,7 +429,6 @@ describe("Bulletin Board", function () {
 
             const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
             // seller index i array of sellers = 0
-            const sellerId = 0;
             await bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, offersCount - 1, {
                 value: ethAmount
             });
@@ -450,7 +449,17 @@ describe("Bulletin Board", function () {
 
             const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
 
-            const sellerId = 0;
+            await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, offersCount - 1, {
+                value: ethAmount
+            }));
+        })
+
+        it("Should revert when trying to buy cancelled order", async () => {
+            const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
+
+            // - 1 to pass the index of the offer and the seller
+            await bulletinBoardContract.from(aliceAccount).cancelOffer(offersCount - 1);
+
             await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, offersCount - 1, {
                 value: ethAmount
             }));
@@ -459,7 +468,6 @@ describe("Bulletin Board", function () {
         it("Should revert if msg.value < needed ethAmount for the offer", async () => {
             const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
 
-            const sellerId = 0;
             await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, offersCount - 1, {
                 value: ethAmount.sub(1)
             }));
@@ -468,7 +476,6 @@ describe("Bulletin Board", function () {
         it("Should revert if msg.value > needed ethAmount for the offer", async () => {
             const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
 
-            const sellerId = 0;
             await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, offersCount - 1, {
                 value: ethAmount.add(1)
             }));
@@ -476,7 +483,6 @@ describe("Bulletin Board", function () {
 
         it("Should fail if one tries to buy offer with wrong id", async () => {
             const wrongId = 3;
-            const sellerId = 0;
             await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(aliceAccount.address, wrongId, {
                 value: ethAmount
             }));
@@ -484,7 +490,6 @@ describe("Bulletin Board", function () {
 
         it("Should fail if one tries to buy offer with wrong seller address", async () => {
             const offersCount = await bulletinBoardContract.getOffersPerSellerCount(aliceAccount.address);
-            const sellerId = 0;
             await assert.revert(bulletinBoardContract.from(bobAccount).buyOffer(charlieAccount.address, offersCount - 1, {
                 value: ethAmount
             }));

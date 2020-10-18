@@ -4,7 +4,7 @@ name: Run Tests on PR
 on:
   pull_request:
     branches:
-      - '*'
+      - 'master'
 
 jobs:
   build:
