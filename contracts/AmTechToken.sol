@@ -66,6 +66,7 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
      *
      * - the caller must have the `MINTER_ROLE`.
      */
+    // TODO Add onlyWhitelsited on mint, tranferFrom etc.
     function mint(address to, uint256 amount) public virtual {
         require(
             hasRole(MINTER_ROLE, _msgSender()),

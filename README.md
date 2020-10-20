@@ -9,6 +9,9 @@ Run Deployment
 ### Smart wallet deployment
 ``etherlime deploy --file ./deployment/deploy-smart-wallet-implementation.js --compile=false``
 
+### Testnet deployment
+``etherlime deploy --file ./deployment/deploy-token.js --compile=false --network ropsten --secret <>`` 
+
 Run tests
 - 
 `etherlime test --solcVersion 0.6.6`
