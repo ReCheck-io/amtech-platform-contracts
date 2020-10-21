@@ -20,7 +20,7 @@ contract Proxy {
      * @return The Address of the implementation.
      */
     function _implementation() internal pure returns (address) {
-        return 0xc9707E1e496C12f1Fa83AFbbA8735DA697cdBf64; // Change this after deploying the implementation
+        return 0x158F0d3E054787a8DAfb9596a8a180CFf2Eb4619; // Change this after deploying the implementation
     }
 
     /**

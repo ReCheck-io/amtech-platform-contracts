@@ -13,6 +13,7 @@ const deploy = async (network, secret) => {
         deployer = new etherlime.InfuraPrivateKeyDeployer(secret, network, etherscanApiKey)
     }
     relayerInstance = await deployer.deploy(Relayer, {}, Proxy.bytecode);
+    proxyInstance = await deployer.deploy(Proxy, {});
 
 };
 
