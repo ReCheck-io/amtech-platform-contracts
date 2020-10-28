@@ -3,7 +3,7 @@ const Whitelisting = require('../build/Whitelisting.json');
 const owner = accounts[0].signer;
 const whitelistOperator = accounts[9].signer;
 
-describe('Whitelisting', () => {
+describe.only('Whitelisting', () => {
     let deployer;
     let whitelistingContract;
 
@@ -11,6 +11,11 @@ describe('Whitelisting', () => {
         deployer = new etherlime.EtherlimeGanacheDeployer();
         whitelistingContract = await deployer.deploy(Whitelisting);
         await whitelistingContract.setWhitelister(whitelistOperator.address, true);
+    });
+
+    it('Should have the correct whitelister set', async () => {
+        const isWhitelister = await whitelistingContract.whitelisters(whitelistOperator.address);
+        assert.ok(isWhitelister);
     });
 
     it('Should add one as whitelisted from owner', async () => {

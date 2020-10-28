@@ -5,7 +5,7 @@ const MockRandomGenerator = require("../build/MockRandomGenerator.json");
 const Token = require("../build/AmTechToken.json");
 const Whitelisting = require("../build/Whitelisting.json");
 
-describe.only("Prize Distribution", function () {
+describe("Prize Distribution", function () {
     // this.timeout(100000);
 
     let deployer;

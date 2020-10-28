@@ -118,6 +118,10 @@ contract BulletinBoard {
             _offerIndex,
             infoPerSeller[msg.sender].allSellersIndex
         );
+
+        // TODO decrease totalTokensForSalePerSeller
+        // TODO When cancel then new create it could fail now, write tests first to see it failing
+
         emit OfferCanceled(msg.sender, _offerIndex);
         return true;
     }
