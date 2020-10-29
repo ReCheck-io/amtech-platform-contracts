@@ -10,7 +10,10 @@ Run Deployment
 ``etherlime deploy --file ./deployment/deploy-smart-wallet-implementation.js --compile=false``
 
 ### Testnet deployment
-``etherlime deploy --file ./deployment/deploy-token.js --compile=false --network ropsten --secret <>`` 
+``etherlime deploy --file ./deployment/deploy-smart-wallet-implementation.js --compile=false --network kovan --secret <>`` 
+Change address to the Smart Wallet Proxy
+``etherlime deploy --file ./deployment/deploy-relayer.js --compile=false --network kovan --secret <>`` 
+``etherlime deploy --file ./deployment/deploy-all.js --compile=false --network kovan --secret <>`` 
 
 Run tests
 - 
