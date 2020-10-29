@@ -118,6 +118,10 @@ contract BulletinBoard {
             _offerIndex,
             infoPerSeller[msg.sender].allSellersIndex
         );
+
+        // TODO decrease totalTokensForSalePerSeller
+        // TODO When cancel then new create it could fail now, write tests first to see it failing
+
         emit OfferCanceled(msg.sender, _offerIndex);
         return true;
     }
@@ -212,6 +216,9 @@ contract BulletinBoard {
     ) internal returns (bool) {
         require(allSellers[_sellerIndex] == _offerOwner);
 
+        totalTokensForSalePerSeller[_offerOwner] = totalTokensForSalePerSeller[_offerOwner]
+        .sub(offersPerSeller[_offerOwner][_offerIndex].tokenAmount);
+
         if (getOffersPerSellerCount(_offerOwner) - 1 == _offerIndex) {
             offersPerSeller[_offerOwner].pop();
 
@@ -220,8 +227,8 @@ contract BulletinBoard {
                 rearrangeAllSellers(_sellerIndex);
             }
         } else {
-            offersPerSeller[_offerOwner][_offerIndex] = offersPerSeller[msg
-                .sender][getOffersPerSellerCount(_offerOwner) - 1];
+            // TODO Check if the msg.sender here do not break something
+            offersPerSeller[_offerOwner][_offerIndex] = offersPerSeller[msg.sender][getOffersPerSellerCount(_offerOwner) - 1];
 
             offersPerSeller[_offerOwner].pop();
         }
