@@ -63,14 +63,13 @@ describe('Relayer Tests', function () {
             let setData = smartWalletInterface.encodeFunctionData('addGuardian', [bobAccount.signer.address, guardianData.dataHash, guardianData.dataSig]);
             const setSignature = await generateExecutionSignature(aliceAccount.signer, setData, 0, 0, accountAddress, nonce);
 
-            metaTxBatchData = smartWalletInterface.encodeFunctionData('execute', [
+            let metaTxBatchData = await smartWalletInterface.encodeFunctionData('execute', [
                 [mockTargetInstance.contractAddress, accountAddress],
                 [0, 0],
                 [0, 0],
                 [buyData, setData],
                 [buySignature, setSignature],
             ]);
-
             const target = accountAddress;
 
             const targetSignature = await generateSignData(aliceAccount.signer, ['address'], [target]);
@@ -82,8 +81,14 @@ describe('Relayer Tests', function () {
 
             const walletContract = await etherlime.ContractAt(SmartWallet, accountAddress);
 
-            const signerStatus = await walletContract.isSigner(aliceAccount.signer.address);
-
+            let signerStatus;
+            try {
+                signerStatus = await walletContract.isSigner(aliceAccount.signer.address);
+            }
+            catch (e) {
+                const smartWalletImplementation = await deployer.deploy(SmartWallet, {});
+                throw Error("If this test is failing, use this address in the Proxy.sol: " + smartWalletImplementation.contractAddress);
+            }
             assert.strictEqual(signerStatus, 2, 'Alice is not owner of her contract');
 
             const bobStatus = await walletContract.isSigner(bobAccount.signer.address);
