@@ -118,6 +118,7 @@ contract BulletinBoard {
             _offerIndex,
             infoPerSeller[msg.sender].allSellersIndex
         );
+
         emit OfferCanceled(msg.sender, _offerIndex);
         return true;
     }
@@ -212,6 +213,9 @@ contract BulletinBoard {
     ) internal returns (bool) {
         require(allSellers[_sellerIndex] == _offerOwner);
 
+        totalTokensForSalePerSeller[_offerOwner] = totalTokensForSalePerSeller[_offerOwner]
+        .sub(offersPerSeller[_offerOwner][_offerIndex].tokenAmount);
+
         if (getOffersPerSellerCount(_offerOwner) - 1 == _offerIndex) {
             offersPerSeller[_offerOwner].pop();
 
@@ -220,8 +224,7 @@ contract BulletinBoard {
                 rearrangeAllSellers(_sellerIndex);
             }
         } else {
-            offersPerSeller[_offerOwner][_offerIndex] = offersPerSeller[msg
-                .sender][getOffersPerSellerCount(_offerOwner) - 1];
+            offersPerSeller[_offerOwner][_offerIndex] = offersPerSeller[_offerOwner][getOffersPerSellerCount(_offerOwner) - 1];
 
             offersPerSeller[_offerOwner].pop();
         }
