@@ -119,9 +119,6 @@ contract BulletinBoard {
             infoPerSeller[msg.sender].allSellersIndex
         );
 
-        // TODO decrease totalTokensForSalePerSeller
-        // TODO When cancel then new create it could fail now, write tests first to see it failing
-
         emit OfferCanceled(msg.sender, _offerIndex);
         return true;
     }
@@ -227,8 +224,7 @@ contract BulletinBoard {
                 rearrangeAllSellers(_sellerIndex);
             }
         } else {
-            // TODO Check if the msg.sender here do not break something
-            offersPerSeller[_offerOwner][_offerIndex] = offersPerSeller[msg.sender][getOffersPerSellerCount(_offerOwner) - 1];
+            offersPerSeller[_offerOwner][_offerIndex] = offersPerSeller[_offerOwner][getOffersPerSellerCount(_offerOwner) - 1];
 
             offersPerSeller[_offerOwner].pop();
         }
