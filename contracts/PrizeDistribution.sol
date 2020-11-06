@@ -2,6 +2,7 @@ pragma solidity ^0.6.6;
 
 import "./interfaces/IRandomGenerator.sol";
 import "./interfaces/IPrizeDistribution.sol";
+import "./AmTechToken.sol";
 import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 
@@ -27,7 +28,10 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
     mapping(address => UserStatus) indexToHolderAddress;
     mapping(address => bool) public distributionAdmins;
 
+    // Round => Rewards Struct
+    mapping(uint256 => RoundRewards[]) rewardsPerRound;
     uint256 public currentRound;
+    bool public inActiveRound;
 
     // mapping(uint256 => Winner[]) public roundsAndWinningPositions;
 
@@ -39,11 +43,17 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         bool isActive;
     }
 
+    struct RoundRewards {
+        uint256 rewardSize;
+        uint256 numberOfRewards;
+    }
+
     // struct Winner {
     //     address winner;
     //     uint256 position;
     // }
 
+    // TODO add events for most of the functions and emit them, also write tests for the events
     modifier onlyTokenContract() {
         require(msg.sender == tokenAddress);
         _;
@@ -51,6 +61,11 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
 
     modifier onlyDistributionAdmin() {
         require(distributionAdmins[msg.sender], "The caller is not distribution admin");
+        _;
+    }
+
+    modifier onlyInActiveRound() {
+        require(inActiveRound, "Currently there is no started round");
         _;
     }
 
@@ -95,8 +110,19 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         currentRandomNumber = randomGenerator.rollTheDice(userSeed);
     }
 
-    function createRewards(uint256 _changeIt) public onlyDistributionAdmin {
-// TODO Create rewards lists - how many rewards by which type for which round we would have
+    function getRewardsCount(uint256 roundNumber) public view returns (uint256) {
+        return rewardsPerRound[roundNumber].length;
+    }
+
+    // TODO Create rewards lists - how many rewards by which type for which round we would have
+    function createRewards(uint256[] memory rewardSizes, uint256[] memory numberOfRewards) public
+        onlyDistributionAdmin
+        onlyInActiveRound {
+        // TODO Test
+        require(rewardSizes.length == numberOfRewards.length, "The two arrays.length do not match");
+
+        // TODO Test
+        rewardsPerRound[currentRound] = RoundRewards(rewardSizes, numberOfRewards);
     }
 
     function findWinner(uint256 random) public view returns (address) {
@@ -144,7 +170,14 @@ contract PrizeDistribution is Ownable, IPrizeDistribution {
         return true;
     }
 
-    function closeRound() public onlyTokenContract {
+    function startRound() public onlyDistributionAdmin {
         currentRound++;
+        inActiveRound = true;
+        AmTechToken(tokenAddress).pause();
+    }
+
+    function closeRound() public onlyDistributionAdmin {
+        inActiveRound = false;
+        AmTechToken(tokenAddress).unpause();
     }
 }

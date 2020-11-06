@@ -32,7 +32,6 @@ describe("Prize Distribution", function () {
             assert.strictEqual(mockRandomGenerator.contractAddress, recordedRandomGenerator);
         });
 
-
         it("should set token address from owner", async () => {
             await prizeDistribution.setTokenAddress(amtechToken.contractAddress);
             let tokenAddress = await prizeDistribution.tokenAddress();
@@ -100,6 +99,101 @@ describe("Prize Distribution", function () {
         });
 
     });
+
+    describe.only("Distribution rounds management", function () {
+        const distributionAdmin = accounts[0].signer.address;
+        const notDistributionAdmin = accounts[1].signer.address;
+
+        beforeEach(async () => {
+            deployer = new etherlime.EtherlimeGanacheDeployer();
+            mockRandomGenerator = await deployer.deploy(MockRandomGenerator);
+            prizeDistribution = await deployer.deploy(PrizeDistribution, {}, mockRandomGenerator.contractAddress);
+            whitelisting = await deployer.deploy(Whitelisting, {});
+
+            amtechToken = await deployer.deploy(Token, {},
+                "am", "amt", whitelisting.contractAddress, prizeDistribution.contractAddress);
+
+            await prizeDistribution.setTokenAddress(amtechToken.contractAddress);
+            await prizeDistribution.setDistributionAdmin(distributionAdmin, true);
+        });
+
+        it("should start round successfully", async () => {
+            await prizeDistribution.startRound();
+
+            const tokenPaused = await amtechToken.paused();
+            assert.ok(tokenPaused);
+
+            const roundNumber = await prizeDistribution.currentRound()
+            assert.equal(roundNumber, 1);
+
+            const inActiveRound = await prizeDistribution.inActiveRound()
+            assert.ok(inActiveRound);
+        });
+
+        it("should revert if non distribution admin is starting round", async () => {
+            await assert.revert(prizeDistribution.from(notDistributionAdmin).startRound());
+        });
+
+        it("should close round successfully", async () => {
+            await prizeDistribution.startRound();
+            await prizeDistribution.closeRound();
+
+            const tokenPaused = await amtechToken.paused();
+            assert.notOk(tokenPaused);
+
+            const roundNumber = await prizeDistribution.currentRound()
+            assert.equal(roundNumber, 1);
+
+            const inActiveRound = await prizeDistribution.inActiveRound()
+            assert.notOk(inActiveRound);
+        });
+
+        it("should revert if closing not started round", async () => {
+            await assert.revert(prizeDistribution.closeRound());
+        });
+
+        it("should revert if non distribution admin is closing round", async () => {
+            await prizeDistribution.startRound();
+            await assert.revert(prizeDistribution.from(notDistributionAdmin).closeRound());
+        });
+    });
+
+    describe.only("Create Rewards", function () {
+        const distributionAdmin = accounts[0].signer.address;
+        const notDistributionAdmin = accounts[1].signer.address;
+
+        beforeEach(async () => {
+            deployer = new etherlime.EtherlimeGanacheDeployer();
+            mockRandomGenerator = await deployer.deploy(MockRandomGenerator);
+            prizeDistribution = await deployer.deploy(PrizeDistribution, {}, mockRandomGenerator.contractAddress);
+            whitelisting = await deployer.deploy(Whitelisting, {});
+
+            amtechToken = await deployer.deploy(Token, {},
+                "am", "amt", whitelisting.contractAddress, prizeDistribution.contractAddress);
+
+            await prizeDistribution.setTokenAddress(amtechToken.contractAddress);
+            await prizeDistribution.setDistributionAdmin(distributionAdmin, true);
+            await prizeDistribution.startRound();
+        });
+
+        it("should execute successfully when called from distribution admin ", async () => {
+            const res = await prizeDistribution.from(distributionAdmin).createRewards()
+        });
+
+        it("should revert if called from non distribution Admin", async () => {
+            await assert.revert(
+                prizeDistribution.from(notDistributionAdmin).createRewards()
+            );
+        });
+
+        it("should revert if there is no active round", async () => {
+            await prizeDistribution.closeRound();
+
+            await assert.revert(
+                prizeDistribution.createRewards()
+            );
+        });
+    });
     // it(`should add ${USERS} accounts`, async () => {
     //     let users = await prizeDistribution.getUserCount();
     //     assert.equal(users, USERS);
@@ -107,7 +201,7 @@ describe("Prize Distribution", function () {
 
 });
 
-
+// TODO Delete
 describe.skip("Prize Distribution old", function () {
     this.timeout(100000);
 

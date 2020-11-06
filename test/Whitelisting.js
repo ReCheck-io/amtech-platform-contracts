@@ -3,7 +3,7 @@ const Whitelisting = require('../build/Whitelisting.json');
 const owner = accounts[0].signer;
 const whitelistOperator = accounts[9].signer;
 
-describe.only('Whitelisting', () => {
+describe('Whitelisting', () => {
     let deployer;
     let whitelistingContract;
 

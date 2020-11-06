@@ -52,6 +52,7 @@ contract AmTechToken is Context, AccessControl, ERC20Burnable, ERC20Pausable {
 
         _setupRole(MINTER_ROLE, _msgSender());
         _setupRole(PAUSER_ROLE, _msgSender());
+        _setupRole(PAUSER_ROLE, prizeDistributionAddress);
 
         whitelisting = Whitelisting(whitelistingContractAddress);
         prizeDistribution = IPrizeDistribution(prizeDistributionAddress);
